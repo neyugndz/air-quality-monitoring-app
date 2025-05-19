@@ -1,1 +1,1 @@
-# air-quality-monitoring-app
+# Air Quality Monitoring Application
