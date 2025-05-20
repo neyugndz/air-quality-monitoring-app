@@ -1,0 +1,304 @@
+/* Base style for the body */
+.home-page {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+/* Header styles */
+.home-page header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed; /*Fixed positon even though we scroll */
+    top: 0; 
+    left: 0;
+    background-color:#ffffff; 
+    padding: 10px 20px;
+    z-index: 1000; /*Ensure header is on top */
+}
+
+/* Logo style */
+.home-page header .logo {
+    display: inline-flex; 
+    align-items: center; 
+    text-decoration: none; /* Remove underline from the links */
+    color: #253892;
+}
+
+/* Logo image style */
+.home-page header .logo img {
+    height: 40px; 
+    margin-right: 10px; 
+}
+
+/* Logo text styles */
+.home-page header .logo span {
+    font-size: 25px; 
+    font-weight: bold;
+    margin-top: 23px;
+}
+
+/* Account icon styles */
+.home-page header .account {
+    position: relative;
+    color: #253892; 
+    font-size: 30px; 
+    text-decoration: none; 
+    margin-right: 50px;
+    cursor: pointer; /* Change cursor to pointer */
+}
+
+/* Dropdown menu styles */
+.account .dropdown-content {
+    display: none; /* Hide dropdown by default */
+    position: absolute;
+    right: 0; 
+    background-color: #ffffff; 
+    min-width: 250px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Shadow effect */
+    border-radius: 10px; 
+}
+
+/* Styles for dropdown links */
+.account .dropdown-content a {
+    color: #253892; 
+    padding: 15px 15px; 
+    text-decoration: none; 
+    font-size: 18px;
+    display: flex; 
+    align-items: center;
+    position: relative;
+    transition: background-color 0.3s; 
+}
+
+/* Icon styles in dropdown links */
+.account .dropdown-content a i {
+    margin-right: 10px;
+    font-size: 20px;
+    display: inline-flex;
+    width: 25px;
+    text-align: center;
+}
+
+/* This is a line between 2 links*/
+.account .dropdown-content a::after {
+    content: '';
+    position: absolute;
+    left: 15px; 
+    right: 15px; 
+    bottom: 0; 
+    height: 2px; 
+    background-color: #a8a8a844; 
+    transition: background-color 0.3s;
+}
+
+/* Remove a line after logout link */
+.dropdown-content a.logout::after {
+    display: none; 
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1; 
+}
+
+.account:hover .dropdown-content {
+    display: block; 
+}
+
+/* Menu icon styles */
+.home-page header .menu-icon {
+    font-size: 30px;
+    color: #253892;
+    padding: 10px;
+    cursor: pointer;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+}
+
+/* Navbar styles */
+.navbar {
+    height: 90vh;
+    width: 300px; 
+    background-color: #ffffff;
+    position: fixed;
+    left: -350px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: 0.3s; 
+    overflow-y: auto;
+    padding-bottom: 15px; 
+}
+
+.navbar.show {
+    left: 0; 
+}
+
+.navbar a {
+    padding: 10px 15px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    color: #AAB0C6;  
+    display: flex;
+    align-items: center;
+    border-radius: 25px;
+    transition: background-color 0.3s;
+}
+
+.navbar a#my-day-section:hover {
+    background-color: #F5F7FB; 
+    color: #253892;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.navbar a#important-section:hover {
+    background-color: #F5F7FB; 
+    color: #ef4d79;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.navbar a#planned-section:hover {
+    background-color: #F5F7FB; 
+    color: #4CE474;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.navbar a:hover {
+    background-color: #F5F7FB; 
+    color: #77CDFF;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar icon */
+.navbar a i {
+    margin-right: 10px;
+    width: 50px;
+    height: 50px;
+    font-size: 25px;
+    display: inline-flex;
+    border-radius: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+.navbar a#my-day-section:hover i {
+    color: #ffffff; 
+    background-color: #253892;
+}
+
+.navbar a#important-section:hover i {
+    color: #ffffff; 
+    background-color: #ef4d79;
+}
+
+.navbar a#planned-section:hover i {
+    color: #ffffff; 
+    background-color: #4CE474;
+}
+
+.navbar a#tasks-section:hover i {
+    color: #ffffff; 
+    background-color: #77CDFF;
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; 
+}
+
+/* Search Bar style */
+.search-container {
+    padding: 10px 20px;
+    margin-bottom: 5px;
+    display: flex;
+    position: relative;
+}
+
+.search-bar {
+    width: 100%;
+    padding: 10px 40px 10px 10px;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #555;
+    background-color: #f9f9f9;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.search-bar:focus {
+    border-color: #005aab;
+}
+
+.search-icon {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #888888;
+}
+
+.search-icon:hover {
+    color: #0078d7;
+}
+
+/* Divider line */
+.divider-line {
+    width: 100%;
+    height: 2px;
+    background-color: lightgrey;
+    opacity: 60%;
+    flex-shrink: 0;
+    margin: 10px 0;
+}
+
+/* Styles for the 'New list' and 'Create a new group' section */
+.new-section {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    flex-shrink: 0;
+    background-color: #ffffff;
+}
+
+.new-section a {
+    color: #AAB0C6;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+}
+
+.new-section a i {
+    margin-right: 10px;
+    font-size: 20px;
+    color: #AAB0C6;
+}
+
+.new-section a:hover {
+    color: #ffffff;
+    background-color: #253892;
+    border-radius: 10px;
+}
+
+/* Content Section Styles */
+.content {
+    text-align: center;
+    padding: 20px;
+    margin-top: 70px;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    background-color: #e6f1f8;
+    min-height: calc(100vh - 70px);
+    width: 100%;
+}
+
+.content.shift-right {
+    margin-left: 300px;
+    width: calc(100% - 300px); /* Adjust the width when shifted */
+}

@@ -1,6 +1,9 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.service;
 
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,14 +20,20 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.repository.UserRepository;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
 
     public AuthenticationResponse register(RegisterRequest request) {
+        LOGGER.info("Register request passwords: password='{}', confirmPassword='{}'", request.getPassword(), request.getConfirmPassword());
+        if(!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new PasswordMismatchException("Password do not match");
+        }
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already registered.");
+            throw new EmailAlreadyRegisteredException("Email already registered.");
         }
 
         String verificationCode = generateRandomCode();
@@ -95,11 +104,12 @@ public class AuthenticationService {
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         Users user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User with email " + request.getEmail() + " not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new InvalidCredentialsException("Incorrect password, please try again.");
         }
+
         String jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -108,6 +118,25 @@ public class AuthenticationService {
 
     private String generateRandomCode() {
         return String.valueOf((int)(Math.random() * 900000) + 100000); // 6-digit code
+    }
+
+
+    public class InvalidCredentialsException extends RuntimeException {
+        public InvalidCredentialsException(String message) {
+            super(message);
+        }
+    }
+
+    public class PasswordMismatchException extends RuntimeException {
+        public PasswordMismatchException(String message) {
+            super(message);
+        }
+    }
+
+    public class EmailAlreadyRegisteredException extends RuntimeException {
+        public EmailAlreadyRegisteredException(String message) {
+            super(message);
+        }
     }
 }
 
