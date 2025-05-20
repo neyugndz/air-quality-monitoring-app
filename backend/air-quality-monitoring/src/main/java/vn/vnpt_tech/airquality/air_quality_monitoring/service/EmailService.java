@@ -11,7 +11,7 @@ public class EmailService {
     private JavaMailSender mailSender;
     public void send(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("nguyennd.22bi13340@usth.edu.vn");
+        message.setFrom("dangnguyen180904@gmail.com");
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text);
