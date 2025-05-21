@@ -11,7 +11,8 @@ function Register(){
     const [showRePassword, setShowRePassword] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
+    const [isClicked, setIsClicked] = useState(false);
+    
     const navigate = useNavigate();
 
     const togglePasswordVisibility = () => {
@@ -34,9 +35,11 @@ function Register(){
             return;
         }
 
+        setIsClicked(true);
+
         const payload = {
             email, 
-            username, 
+            name: username, 
             password,
             confirmPassword: rePassword
         }
@@ -48,11 +51,13 @@ function Register(){
             });
       
             if (response.ok) {
-              setSuccess("You have successfully registered!");
-              setTimeout(() => {
-                setSuccess("");
-                navigate("/login");
-              }, 3000);
+                sessionStorage.setItem("email", email);
+
+                setSuccess("You have successfully registered!");
+                setTimeout(() => {
+                    setSuccess("");
+                    navigate("/verify");
+                }, 3000);
 
             } else {
               let errorData = {};
@@ -65,7 +70,10 @@ function Register(){
             }
           } catch (err) {
             setError("There was an unexpected error: " + err.message);
-          }
+          } finally {
+            // Re-enable the button after the process completes (whether successful or not)
+            setIsClicked(false);
+        }
     }
     return (
         <div className='register-page'>
@@ -146,7 +154,10 @@ function Register(){
                             />
                         </div>
 
-                        <input type="submit" defaultValue="Register" />
+                        <button type="submit" disabled={isClicked}>
+                            {isClicked ? "Registering..." : "Register"}
+                        </button>
+                        
                         <div className="register">
                                 Already have an account? <NavLink to="/login">Sign in</NavLink>
                         </div>

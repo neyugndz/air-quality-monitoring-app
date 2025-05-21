@@ -6,6 +6,7 @@ import Register from './components/register.js';
 import ForgotPassword from './components/forgotPassword.js';
 import ResetPassword from "./components/resetPassword.js";
 import './App.css';
+import VerificationPage from "./components/verification.js";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify" element={<VerificationPage />}/>
       </Routes>
     </BrowserRouter>
   );

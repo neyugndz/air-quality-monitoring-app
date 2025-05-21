@@ -7,8 +7,8 @@
     left: 10px;
 }
 
-/* Root container for reset password page */
-.reset-password-page {
+/* Root container for verification page */
+.verification-page {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -23,7 +23,7 @@
 }
 
 /* Inner form container */
-.reset-password-page .container {
+.verification-page .container {
     position: relative;
     max-width: 400px;
     width: 100%;
@@ -36,28 +36,27 @@
 }
 
 /* Title */
-.reset-password-page h2 {
+.verification-page h2 {
     margin-bottom: 1rem;
     font-size: 2rem;
     color: #253892;
 }
 
 /* Description paragraph */
-.reset-password-page p {
+.verification-page p {
     margin-bottom: 1.5rem;
     color: #666666;
     font-size: 0.9rem;
 }
 
 /* Form groups for inputs */
-.reset-password-page .form-group {
+.verification-page .form-group {
     margin-bottom: 1rem;
     text-align: left;
 }
 
 /* Inputs styling */
-.reset-password-page input[type="text"],
-.reset-password-page input[type="password"] {
+.verification-page input[type="text"] {
     width: 100%;
     padding: 12px;
     border: 1px solid #ccc;
@@ -69,13 +68,12 @@
     transition: border-color 0.3s ease;
 }
 
-.reset-password-page input[type="text"]:focus,
-.reset-password-page input[type="password"]:focus {
+.verification-page input[type="text"]:focus {
     border-color: #005aab;
 }
 
 /* Submit button */
-.reset-password-page button {
+.verification-page button {
     width: 100%;
     padding: 15px;
     background-color: #005aab;
@@ -88,12 +86,12 @@
     transition: background-color 0.3s ease;
 }
 
-.reset-password-page button:hover {
+.verification-page button:hover {
     background-color: #253892;
 }
 
 /* Error message styling */
-.reset-password-page .error-message {
+.verification-page .error-message {
     color: #d93025;
     margin-top: 10px;
     font-weight: 600;
@@ -101,7 +99,7 @@
 }
 
 /* Success popup styling */
-.reset-password-page .success-pop-up {
+.verification-page .success-pop-up {
     position: fixed;
     top: 10%;
     left: 50%;
@@ -117,7 +115,7 @@
 }
 
 /* Back to login link */
-.reset-password-page a {
+.verification-page a {
     display: inline-block;
     margin-top: 15px;
     color: #253892;
@@ -125,50 +123,48 @@
     font-weight: 600;
 }
 
-.reset-password-page a:hover {
+.verification-page a:hover {
     text-decoration: underline;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .reset-password-page .container {
+    .verification-page .container {
         padding: 1.5rem;
         padding-top: 2.5rem;
     }
 
-    .reset-password-page h2 {
+    .verification-page h2 {
         font-size: 1.3rem;
     }
 
-    .reset-password-page p {
+    .verification-page p {
         font-size: 0.85rem;
     }
 
-    .reset-password-page input[type="text"],
-    .reset-password-page input[type="password"],
-    .reset-password-page button {
+    .verification-page input[type="text"],
+    .verification-page button {
         padding: 0.6rem;
         font-size: 0.9rem;
     }
 }
 
 @media (max-width: 480px) {
-    .reset-password-page .container {
+    .verification-page .container {
         padding: 1rem;
         padding-top: 2rem;
     }
 
-    .reset-password-page h2 {
+    .verification-page h2 {
         font-size: 1.2rem;
     }
 
-    .reset-password-page p {
+    .verification-page p {
         font-size: 0.8rem;
     }
 
-    .reset-password-page input[type="text"],
-    .reset-password-page input[type="password"],
-    .reset-password-page button {
+    .verification-page input[type="text"],
+    .verification-page button {
         padding: 0.5rem;
         font-size: 0.85rem;
     }

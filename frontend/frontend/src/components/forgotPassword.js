@@ -1,23 +1,27 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "../css/forgotPassword.css"
+import "../css/forgotPassword.css";
 
 function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
+    const [success, setSuccess] = useState("");
+    const [isClicked, setIsClicked] = useState(false);
     const navigate = useNavigate();
 
-    const handleForgotPwd = async function (e) {
+    const handleForgotPwd = async (e) => {
         e.preventDefault();
 
         setError("");
-        setSuccess(false);
-
+        setSuccess("");
+        
         if (!email) {
             setError("Field is required");
             return;
         }
+
+        // Disable button when submitting
+        setIsClicked(true);
 
         try {
             const response = await fetch("http://localhost:8080/api/auth/forgot-pwd", {
@@ -27,10 +31,13 @@ function ForgotPassword() {
             });
 
             if (response.ok) {
-                setSuccess(true);
+                // Store email in sessionStorage before navigating
+                sessionStorage.setItem("email", email);
+
+                setSuccess("Reset code sent successfully to your email!");
                 setTimeout(() => {
-                    setSuccess(false);
-                    navigate("/reset-password", { state: { email } }); // pass email for reset page
+                    setSuccess("");
+                    navigate("/reset-password");
                 }, 2000);
             } else {
                 const errorData = await response.json();
@@ -38,6 +45,9 @@ function ForgotPassword() {
             }
         } catch (err) {
             setError("Unexpected error: " + err.message);
+        } finally {
+            // Re-enable the button after the process completes (whether successful or not)
+            setIsClicked(false);
         }
     };
 
@@ -50,8 +60,8 @@ function ForgotPassword() {
                 />
             </div>
             <div className="container">
-                <Link to="/login" className="return-btn"> 
-                    {/* SVG left arrow here */}
+                <Link to="/login" className="return-btn">
+                    <i className="fa-solid fa-arrow-left" style={{ color: "#ffffff" }}></i>
                 </Link>
                 <h2>Forgot Password?</h2>
                 <p>Enter your email address, and we'll send you a code to reset your password.</p>
@@ -66,13 +76,15 @@ function ForgotPassword() {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
-                    <button type="submit">Send Reset Code</button>
+                    <button type="submit" disabled={isClicked}>
+                        {isClicked ? "Sending..." : "Send Reset Code"}
+                    </button>
                 </form>
 
-                {error && <div className="error-message">{error}</div>}
+                {error && <div className="error-message"><i className="fa fa-times-circle"></i> {error}</div>}
                 {success && (
                     <div className="success-pop-up">
-                        <p>Reset code sent successfully to your email!</p>
+                        <i className="fa fa-check-circle"></i> {success}
                     </div>
                 )}
             </div>
