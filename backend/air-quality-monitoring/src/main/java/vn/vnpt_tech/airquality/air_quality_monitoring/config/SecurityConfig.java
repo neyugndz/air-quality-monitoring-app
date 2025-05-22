@@ -30,7 +30,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/verify",
                                 "/api/auth/forgot-pwd",
-                                "/api/auth/reset-pwd"
+                                "/api/auth/reset-pwd",
+                                "/api/sensor/all"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
