@@ -1,8 +1,43 @@
-import '../css/home.css';
+import '../css/dashboard.css';
 import SensorMap from './sensorMap';
 import { Link } from "react-router-dom";
+import { Bar } from 'react-chartjs-2';  // Import Bar chart component from Chart.js
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
-function Home() {
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+
+function Dashboard() {
+
+  const [chartData, setChartData] = useState({
+    labels: ['CO', 'SO2', 'PM2.5', 'PM10', 'O3', 'NO2'],
+    datasets: [
+      {
+        label: 'Pollutant Concentration',
+        data: [50, 40, 266, 100, 75, 85],  // AQI values or pollutant concentrations here
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.5)',
+          'rgba(54, 162, 235, 0.5)',
+          'rgba(255, 206, 86, 0.5)',
+          'rgba(75, 192, 192, 0.5)',
+          'rgba(153, 102, 255, 0.5)',
+          'rgba(255, 159, 64, 0.5)'
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)'
+        ],
+        borderWidth: 1,
+      }
+    ]
+  });
 
   return (
     <div className="home-page">
@@ -94,14 +129,49 @@ function Home() {
                   <a href="#">Show the AQI value</a>
                 </div>
             </div>
+
+            {/* Chart for Real-time Raw Data*/}
+            <div id="chart-container" style={{ marginTop: "20px", backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
+              <Bar 
+                data={chartData} 
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                      display: true,
+                      text: 'Pollutant Concentrations (AQI)',
+                    },
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      title: {
+                        display: true,
+                        text: 'AQI Value'
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            {/* Chart For trend Analysis */}
+
+            {/* Chart or something else to display the Forecast of the AQI value */}
+
           </div>
 
           {/* Right column: Map */}
           <div className="dashboard-map">
             <SensorMap />
+
+            {/* Color Coded Legend to make sense for the Map */}
+            {/* Chart for Percantage time pollution per days */}
           </div>
 
-          {/* Full-width bottom section (table/chart/filter) */}
+
+          {/* Full-width bottom section (Chart for View Historical data) */}
           <div className="dashboard-bottom">
             {/* Example content */}
             <h4>Truy vấn dữ liệu đo</h4>
@@ -113,4 +183,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default Dashboard;

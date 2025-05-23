@@ -7,7 +7,7 @@ import ForgotPassword from './components/forgotPassword.jsx';
 import ResetPassword from "./components/resetPassword.jsx";
 import './App.css';
 import VerificationPage from "./components/verification.jsx";
-import Home from "./components/home.jsx";
+import Dashboard from "./components/dashboard.jsx";
 
 function App() {
   return (
@@ -16,7 +16,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/home" element={< Home/>}/>
+        <Route path="/home" element={< Dashboard/>}/>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify" element={<VerificationPage />}/>
