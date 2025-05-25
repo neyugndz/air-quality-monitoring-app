@@ -8,6 +8,8 @@ import ResetPassword from "./components/resetPassword.jsx";
 import './App.css';
 import VerificationPage from "./components/verification.jsx";
 import Dashboard from "./components/dashboard.jsx";
+import ForecastPage from "./components/forecastPage.jsx";
+import HealthRecommendationPage from "./components/healthRcmPage.jsx";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify" element={<VerificationPage />}/>
+        <Route path="/forecast" element={<ForecastPage />}/>
+        <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
       </Routes>
     </BrowserRouter>
   );
