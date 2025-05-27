@@ -31,9 +31,45 @@ function Dashboard() {
   const [selectedPollutant, setSelectedPollutant] = useState('CO');
   const [timeFormat, setTimeFormat] = useState('Tháng');
   const [timeValue, setTimeValue] = useState('2025-03');
-  const [forecastRange, setForecastRange] = useState('6h')
+  const [forecastRange, setForecastRange] = useState('6h');
+  
 
   const currentAQI = 212;
+
+  // For the dynamic table filtering
+  const pollutants = [
+    { key: 'co', label: 'CO (ppm)' },
+    { key: 'no2', label: 'NO2 (ppm)' },
+    { key: 'so2', label: 'SO2 (ppm)' },
+    { key: 'o3', label: 'O3 (ppm)' },
+    { key: 'pm25', label: 'PM 2.5 (µg/m³)' },
+    { key: 'pm10', label: 'PM 10 (µg/m³)' }
+  ];
+
+  const initialCheckedState = pollutants.reduce((acc, p) => {
+    acc[p.key] = true;
+    return acc;
+  }, {});
+
+  const [checkedPollutants, setCheckedPollutants] = useState(initialCheckedState);
+  const [applied, setApplied] = useState(false);
+
+  const toggleCheckbox = (key) => {
+    setCheckedPollutants(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const onApply = () => {
+    setApplied(true);
+  };
+
+  // Sample data for the table
+  const dataRows = [
+    { date: '20/3/2025', time: '10:04', co: 128, no2: 67, so2: 12, o3: 32, pm25: 294, pm10: 180 },
+    { date: '20/3/2025', time: '10:03', co: 241, no2: 76, so2: 14, o3: 31, pm25: 193, pm10: 231 },
+    { date: '20/3/2025', time: '10:03', co: 159, no2: 61, so2: 8, o3: 37, pm25: 251, pm10: 224 },
+    { date: '20/3/2025', time: '10:02', co: 105, no2: 75, so2: 11, o3: 74, pm25: 258, pm10: 196 },
+  ];
+
   const pollutantOptions = {
     CO: {
       label: 'CO (ppm)',
@@ -229,19 +265,27 @@ function Dashboard() {
             </div>
 
             {/* Health Recommendation Summary */}
-            <div style={{
-              backgroundColor: '#fff8e1',
-              borderLeft: '5px solid #ffc107',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
+            <div 
+              style={{
+                backgroundColor: '#fff8e1',
+                borderLeft: '5px solid #ffc107',
+                padding: '16px 20px',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                minHeight: '240px',  // approximate height to match forecast side
+                boxSizing: 'border-box',  
+              }}>
               <h4 style={{ margin: 0, marginBottom: '8px', fontSize: '16px', color: '#e65100' }}>Health Recommendations</h4>
-              <ul style={{ paddingLeft: '20px', fontSize: '13px', margin: 0, color: '#4e342e' }}>
+               <ul style={{ paddingLeft: '20px', fontSize: '14px', margin: 0, color: '#4e342e', lineHeight: 1.6 }}>
                 <li>If you have asthma or heart disease, avoid outdoor activity.</li>
                 <li>Children and the elderly should stay indoors.</li>
                 <li>Wear an N95 mask when going outside.</li>
                 <li>Keep windows closed and use an air purifier if possible.</li>
+                <li>Avoid outdoor exercise during peak pollution hours.</li>
+                <li>Increase indoor ventilation when outdoor air quality improves.</li>
+                <li>Use saline nasal spray to reduce irritation caused by pollutants.</li>
+                <li>Consult your doctor if you experience symptoms like coughing or wheezing.</li>
+                <li>Stay hydrated to help your body cope with air pollution effects.</li>
               </ul>
               <div style={{ textAlign: 'right', marginTop: '10px' }}>
                 <Link 
@@ -263,172 +307,176 @@ function Dashboard() {
 
 
             {/* Chart for Trend Analysis */}
-            <div className="chart-statistics" style={{ backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
+            <CollapsiblePanel
+              title="Trend Analysis"
+              isOpenDefault={false}
+              >
+              <div className="chart-statistics" style={{ backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
 
-              {/* Header: Title on the left, selectors on the right */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}>
-                <h1 style={{ margin: 0, fontSize: '24px', color: '#8DD8FF' }}>Trend Analysis</h1>
+                {/* Header: Title on the left, selectors on the right */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {/* Pollutant Selector */}
-                  <select
-                    value={selectedPollutant}
-                    onChange={(e) => setSelectedPollutant(e.target.value)}
-                    style={{
-                      fontSize: '14px',
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid #ccc',
-                      backgroundColor: '#f8f9fa',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {Object.keys(pollutantOptions).map((key) => (
-                      <option key={key} value={key}>{pollutantOptions[key].label}</option>
-                    ))}
-                  </select>
-
-                  {/* Time Format Selector */}
-                  <select
-                    value={timeFormat}
-                    onChange={(e) => {
-                      setTimeFormat(e.target.value);
-                      // Reset time value when format changes
-                      if (e.target.value === 'Day') setTimeValue('2025-03-20');
-                      else if (e.target.value === 'Month') setTimeValue('2025-03');
-                      else if (e.target.value === 'Year') setTimeValue('2025');
-                      else setTimeValue('2025-W12');
-                    }}
-                    style={{
-                      fontSize: '14px',
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid #ccc',
-                      backgroundColor: '#f8f9fa',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="Day">Day</option>
-                    <option value="Week">Week</option>
-                    <option value="Month">Month</option>
-                    <option value="Year">Year</option>
-                  </select>
-
-                  {/* Time Value Input (dynamic) */}
-                  {timeFormat === 'Day' && (
-                    <input
-                      type="date"
-                      value={timeValue}
-                      onChange={(e) => setTimeValue(e.target.value)}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {/* Pollutant Selector */}
+                    <select
+                      value={selectedPollutant}
+                      onChange={(e) => setSelectedPollutant(e.target.value)}
                       style={{
                         fontSize: '14px',
                         padding: '6px 10px',
                         borderRadius: '6px',
                         border: '1px solid #ccc',
-                        backgroundColor: '#f8f9fa'
+                        backgroundColor: '#f8f9fa',
+                        cursor: 'pointer'
                       }}
-                    />
-                  )}
-                  {timeFormat === 'Week' && (
-                    <input
-                      type="week"
-                      value={timeValue}
-                      onChange={(e) => setTimeValue(e.target.value)}
+                    >
+                      {Object.keys(pollutantOptions).map((key) => (
+                        <option key={key} value={key}>{pollutantOptions[key].label}</option>
+                      ))}
+                    </select>
+
+                    {/* Time Format Selector */}
+                    <select
+                      value={timeFormat}
+                      onChange={(e) => {
+                        setTimeFormat(e.target.value);
+                        // Reset time value when format changes
+                        if (e.target.value === 'Day') setTimeValue('2025-03-20');
+                        else if (e.target.value === 'Month') setTimeValue('2025-03');
+                        else if (e.target.value === 'Year') setTimeValue('2025');
+                        else setTimeValue('2025-W12');
+                      }}
                       style={{
                         fontSize: '14px',
                         padding: '6px 10px',
                         borderRadius: '6px',
                         border: '1px solid #ccc',
-                        backgroundColor: '#f8f9fa'
+                        backgroundColor: '#f8f9fa',
+                        cursor: 'pointer'
                       }}
-                    />
-                  )}
-                  {timeFormat === 'Month' && (
-                    <input
-                      type="month"
-                      value={timeValue}
-                      onChange={(e) => setTimeValue(e.target.value)}
-                      style={{
-                        fontSize: '14px',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #ccc',
-                        backgroundColor: '#f8f9fa'
-                      }}
-                    />
-                  )}
-                  {timeFormat === 'Year' && (
-                    <input
-                      type="number"
-                      min="2000"
-                      max="2100"
-                      value={timeValue}
-                      onChange={(e) => setTimeValue(e.target.value)}
-                      style={{
-                        fontSize: '14px',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #ccc',
-                        width: '100px',
-                        backgroundColor: '#f8f9fa'
-                      }}
-                    />
-                  )}
+                    >
+                      <option value="Day">Day</option>
+                      <option value="Week">Week</option>
+                      <option value="Month">Month</option>
+                      <option value="Year">Year</option>
+                    </select>
+
+                    {/* Time Value Input (dynamic) */}
+                    {timeFormat === 'Day' && (
+                      <input
+                        type="date"
+                        value={timeValue}
+                        onChange={(e) => setTimeValue(e.target.value)}
+                        style={{
+                          fontSize: '14px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #ccc',
+                          backgroundColor: '#f8f9fa'
+                        }}
+                      />
+                    )}
+                    {timeFormat === 'Week' && (
+                      <input
+                        type="week"
+                        value={timeValue}
+                        onChange={(e) => setTimeValue(e.target.value)}
+                        style={{
+                          fontSize: '14px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #ccc',
+                          backgroundColor: '#f8f9fa'
+                        }}
+                      />
+                    )}
+                    {timeFormat === 'Month' && (
+                      <input
+                        type="month"
+                        value={timeValue}
+                        onChange={(e) => setTimeValue(e.target.value)}
+                        style={{
+                          fontSize: '14px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #ccc',
+                          backgroundColor: '#f8f9fa'
+                        }}
+                      />
+                    )}
+                    {timeFormat === 'Year' && (
+                      <input
+                        type="number"
+                        min="2000"
+                        max="2100"
+                        value={timeValue}
+                        onChange={(e) => setTimeValue(e.target.value)}
+                        style={{
+                          fontSize: '14px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #ccc',
+                          width: '100px',
+                          backgroundColor: '#f8f9fa'
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Line Chart */}
-              <Line
-                data={{
-                  labels: ['01', '05', '10', '15', '20', '25', '30'],
-                  datasets: [
-                    {
-                      label: pollutantOptions[selectedPollutant].label,
-                      data: pollutantOptions[selectedPollutant].data,
-                      borderColor: 'rgba(54, 162, 235, 1)',
-                      backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                      fill: true,
-                      tension: 0.4,
-                      pointRadius: 4,
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    title: {
-                      display: true,
-                      text: `Statistics of ${pollutantOptions[selectedPollutant].label} (${timeFormat} ${timeValue})`
-                    },
-                    legend: {
-                      display: false,
-                    }
-                  },
-                  scales: {
-                    x: {
+                {/* Line Chart */}
+                <Line
+                  data={{
+                    labels: ['01', '05', '10', '15', '20', '25', '30'],
+                    datasets: [
+                      {
+                        label: pollutantOptions[selectedPollutant].label,
+                        data: pollutantOptions[selectedPollutant].data,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
                       title: {
                         display: true,
-                        text: 'Time'
+                        text: `Statistics of ${pollutantOptions[selectedPollutant].label} (${timeFormat} ${timeValue})`
+                      },
+                      legend: {
+                        display: false,
                       }
                     },
-                    y: {
-                      beginAtZero: true,
-                      title: {
-                        display: true,
-                        text: `Value (${pollutantOptions[selectedPollutant].unit})`
+                    scales: {
+                      x: {
+                        title: {
+                          display: true,
+                          text: 'Time'
+                        }
+                      },
+                      y: {
+                        beginAtZero: true,
+                        title: {
+                          display: true,
+                          text: `Value (${pollutantOptions[selectedPollutant].unit})`
+                        }
                       }
                     }
-                  }
-                }}
-              />
-            </div>
+                  }}
+                />
+              </div>
+            </CollapsiblePanel>
             
           </div>
 
@@ -441,6 +489,7 @@ function Dashboard() {
               display: 'flex',
               justifyContent: 'space-around',
               marginTop: '10px',
+              marginBottom: '10px',
               padding: '10px 20px',
               backgroundColor: '#fff',
               borderRadius: '8px',
@@ -491,199 +540,382 @@ function Dashboard() {
 
 
             {/* Chart for AQI Forecast */}
-            <div className="chart-forecast" style={{ marginTop: "10px", backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
+            <CollapsiblePanel
+              title="AQI Forecast - Station Info"
+              isOpenDefault={false}
+            >
+              <div className="chart-forecast" style={{ marginTop: "10px", backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
 
-              {/* Header: Title on the left, time range selector on the right */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>AQI Forecast - Cau Giay Station</h3>
+                {/* Header: Title on the left, time range selector on the right */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {/* <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>AQI Forecast - Cau Giay Station</h3> */}
 
-                <select
-                  value={forecastRange}
-                  onChange={(e) => setForecastRange(e.target.value)}
-                  style={{
-                    fontSize: '14px',
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid #ccc',
-                    backgroundColor: '#f8f9fa',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="6h">Next 6 hours</option>
-                  <option value="24h">Next 24 hours</option>
-                  <option value="7d">Next 7 days</option>
-                </select>
-              </div>
+                  <select
+                    value={forecastRange}
+                    onChange={(e) => setForecastRange(e.target.value)}
+                    style={{
+                      fontSize: '14px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #ccc',
+                      backgroundColor: '#f8f9fa',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="6h">Next 6 hours</option>
+                    <option value="24h">Next 24 hours</option>
+                    <option value="7d">Next 7 days</option>
+                  </select>
+                </div>
 
-              {/* Line Chart */}
-              <Line
-                data={{
-                  labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'], // replace later based on forecastRange
-                  datasets: [
-                    {
-                      label: 'Predicted AQI',
-                      data: [212, 215, 218, 220, 219, 217], // replace later
-                      borderColor: '#f44336',
-                      backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                      tension: 0.4,
-                      fill: true,
-                      pointRadius: 5,
-                      pointBackgroundColor: (ctx) => {
-                        const value = ctx.raw;
-                        if (value <= 50) return '#00e400';
-                        if (value <= 100) return '#ffff00';
-                        if (value <= 150) return '#ff7e00';
-                        if (value <= 200) return '#ff0000';
-                        if (value <= 300) return '#8f3f97';
-                        return '#7e0023';
-                      }
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    title: { display: false },
-                    tooltip: {
-                      callbacks: {
-                        label: (context) => {
-                          const aqi = context.raw;
-                          const risk =
-                            aqi <= 50 ? "Good" :
-                            aqi <= 100 ? "Moderate" :
-                            aqi <= 150 ? "Unhealthy for Sensitive Groups" :
-                            aqi <= 200 ? "Unhealthy" :
-                            aqi <= 300 ? "Very Unhealthy" : "Hazardous";
-                          return `AQI: ${aqi} - ${risk}`;
+                {/* Line Chart */}
+                <Line
+                  data={{
+                    labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'], // replace later based on forecastRange
+                    datasets: [
+                      {
+                        label: 'Predicted AQI',
+                        data: [212, 215, 218, 220, 219, 217], // replace later
+                        borderColor: '#f44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: (ctx) => {
+                          const value = ctx.raw;
+                          if (value <= 50) return '#00e400';
+                          if (value <= 100) return '#ffff00';
+                          if (value <= 150) return '#ff7e00';
+                          if (value <= 200) return '#ff0000';
+                          if (value <= 300) return '#8f3f97';
+                          return '#7e0023';
                         }
                       }
-                    }
-                  },
-                  scales: {
-                    x: {
-                      title: { display: true, text: 'Time (hour)' }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      title: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => {
+                            const aqi = context.raw;
+                            const risk =
+                              aqi <= 50 ? "Good" :
+                              aqi <= 100 ? "Moderate" :
+                              aqi <= 150 ? "Unhealthy for Sensitive Groups" :
+                              aqi <= 200 ? "Unhealthy" :
+                              aqi <= 300 ? "Very Unhealthy" : "Hazardous";
+                            return `AQI: ${aqi} - ${risk}`;
+                          }
+                        }
+                      }
                     },
-                    y: {
-                      beginAtZero: false,
-                      min: 0,
-                      max: 400,
-                      title: { display: true, text: 'AQI' }
+                    scales: {
+                      x: {
+                        title: { display: true, text: 'Time (hour)' }
+                      },
+                      y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 400,
+                        title: { display: true, text: 'AQI' }
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
 
-              {currentAQI > 150 && (
-              <>
-                <div style={{
-                  marginTop: '12px',
-                  fontSize: '13px',
-                  backgroundColor: '#fdecea',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  borderLeft: '4px solid #f44336',
-                  color: '#b71c1c'
-                }}>
-                  ⚠️ Unhealthy air quality. Sensitive groups should stay indoors. Others should reduce outdoor activity.
-                </div>
+                {currentAQI > 150 && (
+                <>
+                  <div style={{
+                    marginTop: '12px',
+                    fontSize: '13px',
+                    backgroundColor: '#fdecea',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    borderLeft: '4px solid #f44336',
+                    color: '#b71c1c'
+                  }}>
+                    ⚠️ Unhealthy air quality. Sensitive groups should stay indoors. Others should reduce outdoor activity.
+                  </div>
 
-                <div style={{ textAlign: 'right', marginTop: '10px' }}>
-                  <Link
-                    to="/forecast"
-                    style={{
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      padding: '6px 12px',
-                      border: 'none',
-                      textDecoration: 'none',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}>
-                    View Full Forecast & Health Advice
-                  </Link>
-                </div>
-              </>
-              )}
-            </div>
+                  <div style={{ textAlign: 'right', marginTop: '10px' }}>
+                    <Link
+                      to="/forecast"
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        padding: '6px 12px',
+                        border: 'none',
+                        textDecoration: 'none',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}>
+                      View Full Forecast & Health Advice
+                    </Link>
+                  </div>
+                </>
+                )}
+              </div>
+            </CollapsiblePanel>
           </div>
 
-          {/* Full-width bottom section */}
-          <div className="dashboard-bottom">
-            <h4 style={{ color: '#007bff', fontSize: '16px', fontWeight: 600 }}>Truy vấn dữ liệu đo</h4>
+          {/* Full-width bottom section with dynamic columns */}
+          <div className="dashboard-bottom" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px' }}>
+            <h1 style={{marginBottom: '20px', fontSize: '24px', color: '#8DD8FF' }}>Query measurement data</h1>
 
             {/* Filter Panel */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {['Nhiệt độ', 'Độ ẩm', 'Áp suất', 'CO', 'NO2', 'SO2', 'O3', 'PM 2.5', 'PM 10'].map((label, index) => (
-                  <label key={index} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
-                    <input type="checkbox" defaultChecked />
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '15px',
+                marginBottom: '20px',
+              }}
+            >
+              {/* Checkbox Group */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '20px',
+                  flexGrow: 1,
+                  minWidth: '300px',
+                  justifyContent: 'center',
+                }}
+              >
+                {pollutants.map(({ key, label }) => (
+                  <label
+                    key={key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '14px',
+                      userSelect: 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checkedPollutants[key]}
+                      onChange={() => toggleCheckbox(key)}
+                      style={{ cursor: 'pointer' }}
+                    />
                     {label}
                   </label>
                 ))}
               </div>
 
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <label style={{ fontSize: '13px' }}>Lựa chọn chỉ số</label>
-                <select style={{ height: '30px', fontSize: '13px' }}>
-                  <option value="custom">Tùy chỉnh</option>
+              {/* Control Panel */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '15px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  minWidth: '320px',
+                }}
+              >
+                <label
+                  style={{ fontSize: '14px', whiteSpace: 'nowrap', fontWeight: '500' }}
+                  htmlFor="index-select"
+                >
+                  Select the index
+                </label>
+                <select
+                  id="index-select"
+                  style={{
+                    height: '34px',
+                    fontSize: '14px',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                    padding: '0 10px',
+                    minWidth: '130px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="custom">Custom</option>
                 </select>
-                <label style={{ fontSize: '13px' }}>Thời gian</label>
-                <input type="date" defaultValue="2025-03-20" style={{ height: '30px', fontSize: '13px' }} />
-                <button style={{
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  padding: '4px 12px',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '13px'
-                }}>Thực hiện</button>
+
+                <label
+                  style={{ fontSize: '14px', whiteSpace: 'nowrap', fontWeight: '500' }}
+                  htmlFor="date-input"
+                >
+                  Time
+                </label>
+                <input
+                  id="date-input"
+                  type="date"
+                  defaultValue="2025-03-20"
+                  style={{
+                    height: '34px',
+                    fontSize: '14px',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                    padding: '0 10px',
+                    minWidth: '140px',
+                    cursor: 'pointer',
+                  }}
+                />
+
+                <button
+                  style={{
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 20px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'background-color 0.3s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#0056b3')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#007bff')}
+                  onClick={() => setApplied(true)}
+                >
+                  Apply
+                </button>
               </div>
             </div>
 
-            {/* Table */}
+            {/* Data Table with horizontal scroll */}
             <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '13px'
-              }}>
-                <thead style={{ backgroundColor: '#f5f5f5' }}>
+              <table
+                style={{
+                  width: '100%',
+                  minWidth: '950px',
+                  borderCollapse: 'collapse',
+                  fontSize: '14px',
+                  color: '#444',
+                }}
+              >
+                <thead style={{ backgroundColor: '#f8f9fa' }}>
                   <tr>
-                    {['STT', 'Ngày', 'Giờ', 'Nhiệt độ (°C)', 'Độ ẩm (%)', 'Áp suất (pa)', 'CO (ppm)', 'NO2 (ppm)', 'SO2 (ppm)', 'O3 (ppm)', 'PM 2.5 (µg/m³)', 'PM 10 (µg/m³)'].map((header, i) => (
-                      <th key={i} style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #ccc' }}>{header}</th>
-                    ))}
+                    <th
+                      style={{
+                        padding: '12px 10px',
+                        textAlign: 'left',
+                        borderBottom: '2px solid #dee2e6',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '600',
+                        color: '#222',
+                      }}
+                    >
+                      STT
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px 10px',
+                        textAlign: 'left',
+                        borderBottom: '2px solid #dee2e6',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '600',
+                        color: '#222',
+                      }}
+                    >
+                      Ngày
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px 10px',
+                        textAlign: 'left',
+                        borderBottom: '2px solid #dee2e6',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '600',
+                        color: '#222',
+                      }}
+                    >
+                      Giờ
+                    </th>
+
+                    {/* Dynamically render columns if applied */}
+                    {applied && pollutants.map(({ key, label }) =>
+                      checkedPollutants[key] && (
+                        <th
+                          key={key}
+                          style={{
+                            padding: '12px 10px',
+                            textAlign: 'left',
+                            borderBottom: '2px solid #dee2e6',
+                            whiteSpace: 'nowrap',
+                            fontWeight: '600',
+                            color: '#222',
+                          }}
+                        >
+                          {label}
+                        </th>
+                      )
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { date: '20/3/2025', time: '10:04', temp: 49, humid: 54, pressure: 648, co: 128, no2: 67, so2: 12, o3: 32, pm25: 294, pm10: 180 },
-                    { date: '20/3/2025', time: '10:03', temp: 50, humid: 41, pressure: 822, co: 241, no2: 76, so2: 14, o3: 31, pm25: 193, pm10: 231 },
-                    { date: '20/3/2025', time: '10:03', temp: 43, humid: 42, pressure: 374, co: 159, no2: 61, so2: 8, o3: 37, pm25: 251, pm10: 224 },
-                    { date: '20/3/2025', time: '10:02', temp: 45, humid: 45, pressure: 819, co: 105, no2: 75, so2: 11, o3: 74, pm25: 258, pm10: 196 }
-                  ].map((row, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{i + 1}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.date}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.time}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.temp}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.humid}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.pressure}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.co}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.no2}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.so2}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.o3}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.pm25}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.pm10}</td>
+                  {dataRows.map((row, i) => (
+                    <tr
+                      key={i}
+                      style={{
+                        borderBottom: '1px solid #e9ecef',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f3f5')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <td style={{ padding: '10px 8px' }}>{i + 1}</td>
+                      <td style={{ padding: '10px 8px' }}>{row.date}</td>
+                      <td style={{ padding: '10px 8px' }}>{row.time}</td>
+
+                      {applied && pollutants.map(({ key }) =>
+                        checkedPollutants[key] ? (
+                          <td key={key} style={{ padding: '10px 8px' }}>
+                            {row[key]}
+                          </td>
+                        ) : null
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </div>      
         </div>
       </div>
+    </div>
+  );
+}
+
+
+// Collapsible Component for shorten the charts
+function CollapsiblePanel ({title, children, isOpenDefault = false}) {
+  const[isOpen, setIsOpen] = useState(isOpenDefault);
+  return(
+  <div style={{ marginBottom: '20px', backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          cursor: 'pointer',
+          width: '100%',
+          textAlign: 'left',
+          background: 'none',
+          border: 'none',
+          padding: '10px 0',
+          fontSize: '18px',
+          fontWeight: '600',
+          color: '#007bff',
+          borderBottom: 'none',
+          outline: 'none',
+          userSelect: 'none'
+        }}
+      >
+        {isOpen ? '▼ ' : '▶ '} {title}
+      </button>
+      {isOpen && <div>{children}</div>}
     </div>
   );
 }
