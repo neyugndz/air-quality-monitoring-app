@@ -124,12 +124,18 @@ function EditableField({
 function ProfileTab() {
   const [email, setEmail] = useState("dangnguyen180904@gmail.com");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("Man");
-  const [location, setLocation] = useState("Use approximate location (based on IP)");
-  const [age, setAge] = useState("");
-  const [hasRespiratoryCondition, setHasRespiratoryCondition] = useState("");
-  const [smokingStatus, setSmokingStatus] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [locationCustomization, setLocationCustomization] = useState("Use approximate location (based on IP)"); // Added here
+  const [asthma, setAsthma] = useState("");
+  const [respiratoryDisease, setRespiratoryDisease] = useState("");
+  const [heartDisease, setHeartDisease] = useState("");
+  const [allergies, setAllergies] = useState("");
   const [pregnant, setPregnant] = useState("");
+  const [smoker, setSmoker] = useState("");
+  const [otherConditions, setOtherConditions] = useState("");
 
   return (
     <div className="tab-content profile-tab">
@@ -138,7 +144,93 @@ function ProfileTab() {
         <ul className="settings-list">
           <EditableField label="Email address" type="email" value={email} onSave={setEmail} />
           <EditableField label="Phone Number" type="tel" value={phone} onSave={setPhone} />
-          <EditableField label="Password" type="password" value="********" onSave={() => {}} />
+          <EditableField
+            label="Date of Birth"
+            type="date"
+            value={dateOfBirth}
+            onSave={setDateOfBirth}
+          />
+          <EditableField
+            label="Gender"
+            options={[
+              { value: "Man", label: "Man" },
+              { value: "Woman", label: "Woman" },
+              { value: "Other", label: "Other" },
+              { value: "Prefer not to say", label: "Prefer not to say" },
+            ]}
+            value={gender}
+            onSave={setGender}
+          />
+          <EditableField label="Height (cm)" type="number" value={heightCm} onSave={setHeightCm} />
+          <EditableField label="Weight (kg)" type="number" value={weightKg} onSave={setWeightKg} />
+        </ul>
+      </section>
+
+
+      <section>
+        <h2 className="section-title">Health Conditions</h2>
+        <ul className="settings-list">
+          <EditableField
+            label="Asthma"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={asthma}
+            onSave={setAsthma}
+          />
+          <EditableField
+            label="Respiratory Disease"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={respiratoryDisease}
+            onSave={setRespiratoryDisease}
+          />
+          <EditableField
+            label="Heart Disease"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={heartDisease}
+            onSave={setHeartDisease}
+          />
+          <EditableField
+            label="Allergies"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={allergies}
+            onSave={setAllergies}
+          />
+          <EditableField
+            label="Pregnancy"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+              { value: "not-applicable", label: "Not applicable" },
+            ]}
+            value={pregnant}
+            onSave={setPregnant}
+          />
+          <EditableField
+            label="Smoker"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            value={smoker}
+            onSave={setSmoker}
+          />
+          <EditableField
+            label="Other Conditions"
+            type="text"
+            value={otherConditions}
+            onSave={setOtherConditions}
+          />
         </ul>
       </section>
 
@@ -146,61 +238,14 @@ function ProfileTab() {
         <h2 className="section-title">Account</h2>
         <ul className="settings-list">
           <EditableField
-            label="Gender"
-            options={[
-              { value: "Man", label: "Man" },
-              { value: "Woman", label: "Woman" },
-              { value: "Other", label: "Other" },
-              { value: "Prefer not to say", label: "Prefer not to say" }
-            ]}
-            value={gender}
-            onSave={setGender}
-          />
-          <EditableField
             label="Location customization"
             options={[
               { value: "Use approximate location (based on IP)", label: "Use approximate location (based on IP)" },
               { value: "Use exact location (GPS)", label: "Use exact location (GPS)" },
-              { value: "Set location manually", label: "Set location manually" }
+              { value: "Set location manually", label: "Set location manually" },
             ]}
-            value={location}
-            onSave={setLocation}
-          />
-        </ul>
-      </section>
-
-      <section>
-        <h2 className="section-title">Health Information</h2>
-        <ul className="settings-list">
-          <EditableField label="Age" type="number" value={age} onSave={setAge} />
-          <EditableField
-            label="Respiratory or heart condition"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" }
-            ]}
-            value={hasRespiratoryCondition}
-            onSave={setHasRespiratoryCondition}
-          />
-          <EditableField
-            label="Smoking status"
-            options={[
-              { value: "smoker", label: "Smoker" },
-              { value: "non-smoker", label: "Non-smoker" },
-              { value: "former-smoker", label: "Former smoker" }
-            ]}
-            value={smokingStatus}
-            onSave={setSmokingStatus}
-          />
-          <EditableField
-            label="Pregnancy status"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-              { value: "not-applicable", label: "Not applicable" }
-            ]}
-            value={pregnant}
-            onSave={setPregnant}
+            value={locationCustomization}
+            onSave={setLocationCustomization}
           />
         </ul>
       </section>
