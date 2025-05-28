@@ -1,29 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Header from './header.jsx';
 
 function HealthRecommendationPage() {
   return (
     <div className="home-page" style={{ backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-      {/* Header reused from Dashboard */}
-      <header>
-        <div className="logo">
-          <img
-            src="https://www.vnpt-technology.vn/front/images/logo_vnpt_technology_vn.svg"
-            alt="Logo VNPT Technology"
-          />
-        </div>
-        <div className="title">
-          <span className="logo-text">Air Quality Monitoring</span>
-        </div>
-        <div className="account" id="account-menu">
-          <i className="fas fa-user"></i>
-          <div className="dropdown-content">
-            <Link to="/profile"><i className="fa-solid fa-user-ninja"></i>Account</Link>
-            <Link to="/settings"><i className="fa-solid fa-gear"></i>Settings</Link>
-            <Link to="/login" className="logout"><i className="fa-solid fa-right-from-bracket"></i>Logout</Link>
-          </div>
-        </div>
-      </header>
+      <Header/>
 
       {/* Page Content */}
       <div style={{ padding: '24px', maxWidth: '900px', margin: '100px auto 40px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>

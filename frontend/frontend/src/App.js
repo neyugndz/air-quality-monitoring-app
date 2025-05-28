@@ -10,6 +10,8 @@ import VerificationPage from "./components/verification.jsx";
 import Dashboard from "./components/dashboard.jsx";
 import ForecastPage from "./components/forecastPage.jsx";
 import HealthRecommendationPage from "./components/healthRcmPage.jsx";
+import Settings from "./components/settings.jsx";
+import Profile from "./components/profile.jsx";
 
 function App() {
   return (
@@ -24,7 +26,9 @@ function App() {
         <Route path="/verify" element={<VerificationPage />}/>
         <Route path="/forecast" element={<ForecastPage />}/>
         <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
-      </Routes>
+        <Route path="/settings" element={<Settings/>}/>
+        <Route path="/profile" element={<Profile/>}/>
++      </Routes>
     </BrowserRouter>
   );
 }

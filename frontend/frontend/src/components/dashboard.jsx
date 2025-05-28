@@ -14,6 +14,7 @@ import {
   Legend,
 } from 'chart.js';
 import { useState } from 'react';
+import Header from './header.jsx';
 
 // Register Chart.js components
 ChartJS.register(
@@ -136,26 +137,7 @@ function Dashboard() {
 
   return (
     <div className="home-page">
-      <header>
-        <div className="logo">
-          <img
-            src="https://www.vnpt-technology.vn/front/images/logo_vnpt_technology_vn.svg"
-            alt="Logo VNPT Technology"
-          />
-        </div>
-        <div className="title">
-          <span className="logo-text">Air Quality Monitoring</span>
-        </div>
-
-        <div className="account" id="account-menu">
-          <i className="fas fa-user"></i>
-          <div className="dropdown-content">
-            <Link to="/profile"><i className="fa-solid fa-user-ninja"></i>Account</Link>
-            <Link to="/settings"><i className="fa-solid fa-gear"></i>Settings</Link>
-            <Link to="/login" className="logout"><i className="fa-solid fa-right-from-bracket"></i>Logout</Link>
-          </div>
-        </div>
-      </header>
+      <Header/>
 
       <div className="dashboard" style={{ backgroundColor: '#f4f6f8' }}>
         <div className="dashboard-layout">

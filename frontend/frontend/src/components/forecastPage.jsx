@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import Header from './header.jsx';
 
 // Register Chart.js modules
 ChartJS.register(
@@ -49,26 +50,7 @@ function ForecastPage() {
 
   return (
     <div className="home-page" style={{ backgroundColor: '#f4f6f8', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
-      <header style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', padding: '20px', position: 'fixed', top: 0, left: 0, zIndex: 1000 }}>
-        <div className="logo">
-          <img
-            src="https://www.vnpt-technology.vn/front/images/logo_vnpt_technology_vn.svg"
-            alt="Logo VNPT Technology"
-            style={{ height: '40px' }}
-          />
-        </div>
-        <div className="title">
-          <span className="logo-text" style={{ fontFamily: 'Protest Strike, sans-serif', fontSize: '1.6rem', color: '#004c9b', textTransform: 'uppercase' }}>Air Quality Monitoring</span>
-        </div>
-        <div className="account" id="account-menu" style={{ position: 'relative', fontSize: '30px', cursor: 'pointer' }}>
-          <i className="fas fa-user" style={{ color: '#253892' }}></i>
-          <div className="dropdown-content" style={{ display: 'none', position: 'absolute', right: 0, backgroundColor: '#ffffff', minWidth: '250px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
-            <Link to="/profile"><i className="fa-solid fa-user-ninja"></i> Account</Link>
-            <Link to="/settings"><i className="fa-solid fa-gear"></i> Settings</Link>
-            <Link to="/login" className="logout"><i className="fa-solid fa-right-from-bracket"></i> Logout</Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div style={{ padding: '20px', maxWidth: '1000px', margin: '100px auto 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
