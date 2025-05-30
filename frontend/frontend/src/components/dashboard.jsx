@@ -32,10 +32,10 @@ function Dashboard() {
   const [selectedPollutant, setSelectedPollutant] = useState('CO');
   const [timeFormat, setTimeFormat] = useState('Tháng');
   const [timeValue, setTimeValue] = useState('2025-03');
-  const [forecastRange, setForecastRange] = useState('6h');
+  // const [forecastRange, setForecastRange] = useState('6h');
   
 
-  const currentAQI = 212;
+  const currentAQI = 22;
 
   // For the dynamic table filtering
   const pollutants = [
@@ -529,10 +529,10 @@ function Dashboard() {
               <div className="chart-forecast" style={{ marginTop: "10px", backgroundColor: "white", padding: "1rem", borderRadius: "8px" }}>
 
                 {/* Header: Title on the left, time range selector on the right */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+                {/* <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}> */}
                   {/* <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>AQI Forecast - Cau Giay Station</h3> */}
 
-                  <select
+                  {/* <select
                     value={forecastRange}
                     onChange={(e) => setForecastRange(e.target.value)}
                     style={{
@@ -548,7 +548,7 @@ function Dashboard() {
                     <option value="24h">Next 24 hours</option>
                     <option value="7d">Next 7 days</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Line Chart */}
                 <Line
@@ -621,6 +621,8 @@ function Dashboard() {
                   }}>
                     ⚠️ Unhealthy air quality. Sensitive groups should stay indoors. Others should reduce outdoor activity.
                   </div>
+                  </>
+                )}
 
                   <div style={{ textAlign: 'right', marginTop: '10px' }}>
                     <Link
@@ -638,8 +640,6 @@ function Dashboard() {
                       View Full Forecast & Health Advice
                     </Link>
                   </div>
-                </>
-                )}
               </div>
             </CollapsiblePanel>
           </div>
