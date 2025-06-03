@@ -35,9 +35,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/verify",
                                 "/api/auth/forgot-pwd",
-                                "/api/auth/reset-pwd",
-                                "/api/sensor/all",
-                                "/api/superset/**"
+                                "/api/auth/reset-pwd"
+//                                "/api/telemetry/*"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

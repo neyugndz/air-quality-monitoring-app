@@ -5,10 +5,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import vn.vnpt_tech.airquality.air_quality_monitoring.entity.SensorReading;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
 import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
-import vn.vnpt_tech.airquality.air_quality_monitoring.repository.SensorReadingRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.service.TelemetryService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,22 +18,25 @@ import java.util.*;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
-@RequestMapping("/api/sensor")
-public class SensorReadingController {
+@RequestMapping("/api/telemetry")
+public class TelemetryController {
     @Autowired
-    private SensorReadingRepository sensorReadingRepository;
+    private TelemetryRepository telemetryRepository;
+
+    @Autowired
+    private TelemetryService telemetryService;
 
     /**
      * Upload a real reading (requires valid JWT token)
      */
     @PostMapping("/upload")
-    public ResponseEntity<Void> upload(@RequestBody SensorReading reading,
+    public ResponseEntity<Void> upload(@RequestBody Telemetry telemetry,
                                        @AuthenticationPrincipal Users user) {
-        reading.setTimestamp(LocalDateTime.now());
-        reading.setDeviceId(user.getEmail()); // TODO: link to user device
-        applyAqiCalculations(reading);
+        telemetry.setTimestamp(LocalDateTime.now());
+        telemetry.setDeviceId(user.getEmail()); // TODO: link to user device
+        telemetryService.applyAqiCalculations(telemetry);
 
-        sensorReadingRepository.save(reading);
+        telemetryRepository.save(telemetry);
         return ResponseEntity.ok().build();
     }
 
@@ -43,18 +48,15 @@ public class SensorReadingController {
             @RequestParam(defaultValue = "100") int count,
             @AuthenticationPrincipal Users user // This injects the logged-in user
     ) {
-        List<SensorReading> dummyList = new ArrayList<>();
+        List<Telemetry> dummyList = new ArrayList<>();
         Random random = new Random();
         LocalDateTime now = LocalDateTime.now();
 
         for (int i = 0; i < count; i++) {
-            SensorReading reading = SensorReading.builder()
+            Telemetry telemetry = Telemetry.builder()
                     .deviceId(user.getEmail()) // link fake data to user account
                     .latitude(21.0285 + random.nextDouble() * 0.01)
                     .longitude(105.8542 + random.nextDouble() * 0.01)
-                    .temperature(25 + random.nextDouble() * 10)
-                    .humidity(40 + random.nextDouble() * 30)
-                    .pressure(1000.0 + random.nextDouble() * 50)
                     .pm25(random.nextDouble() * 400)
                     .pm10(random.nextDouble() * 500)
                     .co(random.nextDouble() * 10)
@@ -64,60 +66,50 @@ public class SensorReadingController {
                     .timestamp(now.minusMinutes(count - i))
                     .build();
 
-            applyAqiCalculations(reading); // TODO: Calculate and set AQI values (removal, support testing)
-            dummyList.add(reading);
+            telemetryService.applyAqiCalculations(telemetry); // TODO: Calculate and set AQI values (removal, support testing)
+            dummyList.add(telemetry);
         }
 
-        sensorReadingRepository.saveAll(dummyList);
-        return ResponseEntity.ok("Inserted " + count + " dummy readings.");
+        telemetryRepository.saveAll(dummyList);
+        return ResponseEntity.ok("Inserted " + count + " dummy telemetrys.");
     }
 
     /**
      * Get all sensor readings (optional: make public)
      */
     @GetMapping("/all")
-    public ResponseEntity<List<SensorReading>> getAll() {
-        return ResponseEntity.ok(sensorReadingRepository.findAll());
-    }
-
-    /**
-     * Utility method to calculate the AQI
-     */
-    private void applyAqiCalculations(SensorReading reading) {
-        int aqiPm25 = AqiCalculator.aqiPm25(reading.getPm25());
-        int aqiPm10 = AqiCalculator.aqiPm10(reading.getPm10());
-        int aqiCo   = AqiCalculator.aqiCo(reading.getCo());
-        int aqiSo2  = AqiCalculator.aqiSo2(reading.getSo2());
-        int aqiNo2  = AqiCalculator.aqiNo2(reading.getNo2());
-        int aqiO3   = AqiCalculator.aqiO3(reading.getO3());
-
-        reading.setAqiPm25(aqiPm25);
-        reading.setAqiPm10(aqiPm10);
-        reading.setAqiCo(aqiCo);
-        reading.setAqiSo2(aqiSo2);
-        reading.setAqiNo2(aqiNo2);
-        reading.setAqiO3(aqiO3);
-
-        int overall = Collections.max(List.of(aqiPm25, aqiPm10, aqiCo, aqiSo2, aqiNo2, aqiO3));
-        reading.setOverallAqi(overall);
+    public ResponseEntity<List<Telemetry>> getAll() {
+        return ResponseEntity.ok(telemetryRepository.findAll());
     }
 
     /**
      * Get latest aqi data based on the day
      * */
     @GetMapping("/aqi/latest")
-    public ResponseEntity<SensorReading> getLatestAqi(@AuthenticationPrincipal Users user) {
-        return sensorReadingRepository.findTopByDeviceIdOrderByTimestampDesc(user.getEmail())
+    public ResponseEntity<Telemetry> getLatestAqi(@AuthenticationPrincipal Users user) {
+        return telemetryRepository.findTopByDeviceIdOrderByTimestampDesc(user.getEmail())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Fetch latest aqi data from the platform
+     * */
+    @GetMapping("/fetch-latest/{deviceId}")
+    public ResponseEntity<Void> fetchLatestOneIotData(
+            @PathVariable String deviceId) {
+
+        telemetryService.fetchAndStoreLatestFromOneIoT(deviceId);
+        return ResponseEntity.ok().build();
+    }
+
 
     // TODO: Add controller to get AQI based on months
     /**
      * Get latest aqi data based on selected day (calculate by the LocalDateTime by subtract the end and the beginning)
      * */
     @GetMapping("/aqi/by-month")
-    public ResponseEntity<List<SensorReading>> getAqiByMonth(
+    public ResponseEntity<List<Telemetry>> getAqiByMonth(
             @AuthenticationPrincipal Users user,
             @RequestParam("year") int year,
             @RequestParam("month") int month
@@ -125,10 +117,10 @@ public class SensorReadingController {
         LocalDateTime start = LocalDate.of(year, month, 1).atStartOfDay();
         LocalDateTime end = start.plusMonths(1);
 
-        List<SensorReading> readings = sensorReadingRepository
+        List<Telemetry> telemetrys = telemetryRepository
                 .findByDeviceIdAndTimestampBetween(user.getEmail(), start, end);
 
-        return ResponseEntity.ok(readings);
+        return ResponseEntity.ok(telemetrys);
     }
 
     /**
@@ -136,12 +128,9 @@ public class SensorReadingController {
      */
     @GetMapping("/raw/latest")
     public ResponseEntity<Map<String, Object>> getRawOnly(@AuthenticationPrincipal Users user) {
-        return sensorReadingRepository.findTopByDeviceIdOrderByTimestampDesc(user.getEmail())
+        return telemetryRepository.findTopByDeviceIdOrderByTimestampDesc(user.getEmail())
                 .map(r -> {
                     Map<String, Object> raw = new HashMap<>();
-                    raw.put("temperature", r.getTemperature());
-                    raw.put("humidity", r.getHumidity());
-                    raw.put("pressure", r.getPressure());
                     raw.put("pm25", r.getPm25());
                     raw.put("pm10", r.getPm10());
                     raw.put("co", r.getCo());

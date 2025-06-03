@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SensorReading {
+public class Telemetry {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,7 +27,6 @@ public class SensorReading {
     private Double longitude;
 
     private Double pm25, pm10, co, so2, no2, o3;
-    private Double temperature, humidity, pressure;
 
     private Integer aqiPm25, aqiPm10, aqiCo, aqiSo2, aqiNo2, aqiO3;
     private Integer overallAqi;
