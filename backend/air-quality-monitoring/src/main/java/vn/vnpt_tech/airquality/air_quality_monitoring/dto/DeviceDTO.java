@@ -1,0 +1,109 @@
+package vn.vnpt_tech.airquality.air_quality_monitoring.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
+
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeviceDTO {
+    private String deviceId;
+    private String stationName;
+
+    private String locationName;
+    private String lastUpdatedDate;
+
+    // Construct the desired DeviceDTO to support the display on the FE
+    public DeviceDTO(Device device, Telemetry telemetry) {
+        this.deviceId = device.getDeviceId();
+        this.stationName = getStationNameFromDeviceName(device.getDeviceName());
+
+        if (device.getLatitude() != null && device.getLongitude() != null) {
+            this.locationName = reverseGeocode(device.getLatitude(), device.getLongitude());
+        } else {
+            this.locationName = "Unknown Location";
+        }
+
+        if (telemetry != null && telemetry.getTimestamp() != null) {
+            this.lastUpdatedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("dd-MM--yyyy HH:mm:ss"));
+        } else {
+            this.lastUpdatedDate = "N/A";
+        }
+
+    }
+
+    /**
+     * Mapping the Device Name to the corresponding Station for better display
+     * @param name
+     * @return
+     */
+    private String getStationNameFromDeviceName(String name) {
+        Map<String, String> map = new HashMap<>();
+        map.put("HoanKiemLakeSensor", "Hoan Kiem District");
+        map.put("BaDinhSquareSensor", "Ba Đình Square");
+        map.put("USTHSensor", "USTH University");
+        map.put("BacTuLiemIndustrialParkSensor", "Bac Tu Liem District");
+        map.put("DongAnhDistrictSensor", "Dong Anh District");
+        map.put("LongBienBridgeSensor", "Long Bien Bridge");
+        map.put("NoiBaiAirportSensor", "Noi Bai Airport");
+        map.put("CauGiayParkSensor", "Cau Giay Park");
+        map.put("NgaTuSoSensor", "Nga Tu So Intersection");
+        map.put("ThuLeParkSensor", "Thu Le Park");
+        map.put("HaDongDistrictSensor", "Ha Dong District");
+        map.put("DongXuanMarket", "Dong Xuan Market");
+        map.put("PhamVanDongSensor", "Pham Van Dong Street");
+        map.put("HoangMaiDistrictSensor", "Hoang Mai District");
+        map.put("HanoiRailwayStationSensor", "Ha Noi Railway Station");
+        map.put("DeviceNguyenTest1", "VNPT Technology");
+
+        return map.getOrDefault(name, "Unknown Station");
+    }
+
+    /**
+     * Convert back from lat and lon value to actual location name for display (using Nomitanim)
+     * @param lat
+     * @param lon
+     * @return
+     */
+    public String reverseGeocode(double lat, double lon) {
+        try {
+            String url = String.format(
+                    "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json&zoom=14&addressdetails=1",
+                    lat, lon
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("User-Agent", "AirQualityMonitoringApp/1.0 (nnguyendang318@gmail.com)");
+
+            HttpEntity<Void> request = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
+            Map<String, Object> result = response.getBody();
+
+            if (result != null && result.containsKey("display_name")) {
+                return result.get("display_name").toString();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return String.format("Unknown Address for (%.4f, %.4f)", lat, lon);
+    }
+
+}

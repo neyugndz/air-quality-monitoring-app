@@ -8,18 +8,24 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import vn.vnpt_tech.airquality.air_quality_monitoring.controller.TelemetryController;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.OneIoTResponseTelemetryLatest;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
 
+import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class TelemetryService {
@@ -29,15 +35,89 @@ public class TelemetryService {
     @Autowired
     private TelemetryRepository telemetryRepository;
 
-    @Value("${ONEIOT_ACCESS_TOKEN}")
-    private String accessToken;
+    @Autowired
+    private DeviceRepository deviceRepository;
 
-    public void fetchAndStoreLatestFromOneIoT(String deviceId+) {
+    @Scheduled(fixedRate = 15 * 60 * 1000) // 15 mins
+    public void fetchHistoricalTelemetryAllDevices() {
+        List<Device> devices = deviceRepository.findAll();
+        for (Device device : devices) {
+            fetchHistoricalTelemetry(device.getDeviceId(), 20);
+        }
+    }
+
+    /**
+     * Method to fetch and save data of the specific devices to the database which take 2 params to form an URL
+     * @param deviceId
+     * @param total
+     */
+    public void fetchHistoricalTelemetry(String deviceId, int total) {
+        String url = "https://oneiot.com.vn:9443/public/device/getContentByDeviceId/"
+                + deviceId + "?total=" + total;
+
+        Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
+        if (deviceOpt.isEmpty()) return;
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setBearerAuth(deviceOpt.get().getAccessToken());
+
+        HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url, HttpMethod.GET, request, String.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> root = mapper.readValue(response.getBody(), new TypeReference<>() {});
+                List<Map<String, Object>> telemetryList = (List<Map<String, Object>>) root.get("contentInstanceList");
+
+                for (Map<String, Object> record : telemetryList) {
+                    Map<String, Object> content = new ObjectMapper().readValue(
+                            record.get("content").toString(), new TypeReference<>() {}
+                    );
+
+                    String timestampStr = (String) content.get("timestamp");
+                    LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                    if (telemetryRepository.findByDeviceIdAndTimestamp(deviceId, timestamp).isPresent()) continue;
+
+                    Telemetry telemetry = new Telemetry();
+                    telemetry.setDeviceId(deviceId);
+                    telemetry.setTimestamp(timestamp);
+
+                    telemetry.setCo(getDouble(content, "CO"));
+                    telemetry.setSo2(getDouble(content, "SO2"));
+                    telemetry.setNo2(getDouble(content, "NO2"));
+                    telemetry.setO3(getDouble(content, "O3"));
+                    telemetry.setPm25(getDouble(content, "PM2_5"));
+                    telemetry.setPm10(getDouble(content, "PM10"));
+                    telemetry.setLatitude(getDouble(content, "latitude"));
+                    telemetry.setLongitude(getDouble(content, "longitude"));
+
+                    applyAqiCalculations(telemetry);
+                    telemetryRepository.save(telemetry);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * Method to fetch the latest content of the selected device/ station
+     * @param deviceId
+     */
+    public void fetchAndStoreLatestFromOneIoT(String deviceId) {
         String url = "https://oneiot.com.vn:9443/public/device/cti/getCtiLatestByDevice/" + deviceId;
 
-        // Headers with token
+        Optional<Device> device = deviceRepository.findByDeviceId(deviceId);
+
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setBearerAuth(accessToken);
+        httpHeaders.setBearerAuth(device.get().getAccessToken());
 
         HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
 
@@ -48,14 +128,18 @@ public class TelemetryService {
             OneIoTResponseTelemetryLatest oneIoT = response.getBody();
 
             if (oneIoT.getErrorCode() == 0) {
-                // Parse JSON inside content
                 ObjectMapper mapper = new ObjectMapper();
                 try {
                     Map<String, Object> contentMap = mapper.readValue(oneIoT.getContent(), new TypeReference<>() {});
-                    Telemetry telemetry = new Telemetry();
+                    String timestampStr = (String) contentMap.get("timestamp");
+                    LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
+                    if (telemetryRepository.findByDeviceIdAndTimestamp(deviceId, timestamp).isPresent())
+                        return;
+
+                    Telemetry telemetry = new Telemetry();
                     telemetry.setDeviceId(deviceId);
-                    telemetry.setTimestamp(LocalDateTime.now());
+                    telemetry.setTimestamp(timestamp);
 
                     telemetry.setCo(getDouble(contentMap, "CO"));
                     telemetry.setSo2(getDouble(contentMap, "SO2"));
@@ -66,8 +150,7 @@ public class TelemetryService {
                     telemetry.setLatitude(getDouble(contentMap, "latitude"));
                     telemetry.setLongitude(getDouble(contentMap, "longitude"));
 
-                    applyAqiCalculations(telemetry); // from your existing controller
-
+                    applyAqiCalculations(telemetry);
                     telemetryRepository.save(telemetry);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -76,8 +159,10 @@ public class TelemetryService {
         }
     }
 
+
     /**
      * Utility method to calculate the AQI
+     * @param telemetry
      */
     public void applyAqiCalculations(Telemetry telemetry) {
         int aqiPm25 = AqiCalculator.aqiPm25(telemetry.getPm25());
@@ -98,7 +183,9 @@ public class TelemetryService {
         telemetry.setOverallAqi(overall);
     }
 
-    // Utility method to avoid casting exceptions
+    /**
+     * Utility method to avoid casting exceptions
+     */
     private Double getDouble(Map<String, Object> map, String key) {
         Object val = map.get(key);
         return val instanceof Number ? ((Number) val).doubleValue() : null;
