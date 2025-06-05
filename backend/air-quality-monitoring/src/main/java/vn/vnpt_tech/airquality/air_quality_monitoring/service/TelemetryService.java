@@ -106,7 +106,6 @@ public class TelemetryService {
         }
     }
 
-
     /**
      * Method to fetch the latest content of the selected device/ station
      * @param deviceId
@@ -158,6 +157,7 @@ public class TelemetryService {
             }
         }
     }
+
 
 
     /**

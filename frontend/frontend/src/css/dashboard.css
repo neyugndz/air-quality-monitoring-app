@@ -142,7 +142,6 @@
 
 /* AQI summary card */
 .dashboard-card-aqi-summary {
-  background-color: #d32f2f;
   color: white;
   border-radius: 8px;
   padding: 10px;
@@ -162,7 +161,7 @@
   font-family: "Arial", sans-serif;
   font-size: 14px;
   gap: 20px;
-  flex-wrap: wrap; /* support responsive */
+  flex-wrap: nowrap; /* support responsive */
 }
 
 .station-info-left {
@@ -177,6 +176,8 @@
   align-items: center;
   gap: 6px;
   color: #333;
+  text-align: left;       
+  white-space: normal;
 }
 
 .station-select {
@@ -242,6 +243,7 @@
   text-decoration: underline;
   color: #007bff;
   cursor: pointer;
+  flex-wrap: nowrap;
 }
 
 /* Right-side map container */
@@ -260,6 +262,19 @@
   border-radius: 8px;
   padding: 20px;
   box-sizing: border-box;
+}
+
+
+@media (max-width: 768px) {
+  .station-info {
+    flex-wrap: wrap;
+    flex-direction: column;
+  }
+
+  .station-select {
+    width: 100%;
+    margin-top: 12px;
+  }
 }
 
 

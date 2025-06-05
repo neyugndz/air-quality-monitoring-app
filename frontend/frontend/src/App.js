@@ -12,6 +12,7 @@ import ForecastPage from "./components/forecastPage.jsx";
 import HealthRecommendationPage from "./components/healthRcmPage.jsx";
 import Settings from "./components/settings.jsx";
 import Profile from "./components/profile.jsx";
+import ProtectedRoute from "./config/ProtectedRoute.js";
 
 function App() {
   return (
@@ -20,15 +21,30 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/home" element={< Dashboard/>}/>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify" element={<VerificationPage />}/>
-        <Route path="/forecast" element={<ForecastPage />}/>
-        <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
-        <Route path="/settings" element={<Settings/>}/>
-        <Route path="/profile" element={<Profile/>}/>
-+      </Routes>
+        <Route
+          path="/home"
+          element={<ProtectedRoute element={<Dashboard />} />}
+        />
+        <Route
+          path="/forecast"
+          element={<ProtectedRoute element={<ForecastPage />} />}
+        />
+        <Route
+          path="/health-recommendations"
+          element={<ProtectedRoute element={<HealthRecommendationPage />} />}
+        />
+        <Route
+          path="/settings"
+          element={<ProtectedRoute element={<Settings />} />}
+        />
+        <Route
+          path="/profile"
+          element={<ProtectedRoute element={<Profile />} />}
+        />
+      </Routes>
     </BrowserRouter>
   );
 }

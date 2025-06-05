@@ -124,22 +124,35 @@ public class TelemetryController {
     }
 
     /**
-     * Get latest raw data based on the day
+     * Get latest Raw Pollutant data based on the DeviceId
      */
-    @GetMapping("/raw/latest")
-    public ResponseEntity<Map<String, Object>> getRawOnly(@AuthenticationPrincipal Users user) {
-        return telemetryRepository.findTopByDeviceIdOrderByTimestampDesc(user.getEmail())
-                .map(r -> {
-                    Map<String, Object> raw = new HashMap<>();
-                    raw.put("pm25", r.getPm25());
-                    raw.put("pm10", r.getPm10());
-                    raw.put("co", r.getCo());
-                    raw.put("so2", r.getSo2());
-                    raw.put("no2", r.getNo2());
-                    raw.put("o3", r.getO3());
-                    raw.put("timestamp", r.getTimestamp());
-                    return ResponseEntity.ok(raw);
-                }).orElse(ResponseEntity.notFound().build());
+    @GetMapping("/all-data/{deviceId}")
+    public ResponseEntity<Map<String, Object>> getLatestRawDataForDevice(@PathVariable String deviceId) {
+        Optional<Telemetry> telemetryOpt = telemetryRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId);
+
+        if (telemetryOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Telemetry telemetry = telemetryOpt.get();
+
+        // Prepare the raw data and AQI information
+        Map<String, Object> rawData = new HashMap<>();
+        rawData.put("pm25", telemetry.getPm25());
+        rawData.put("pm10", telemetry.getPm10());
+        rawData.put("co", telemetry.getCo());
+        rawData.put("so2", telemetry.getSo2());
+        rawData.put("no2", telemetry.getNo2());
+        rawData.put("o3", telemetry.getO3());
+        rawData.put("aqiPm25", telemetry.getAqiPm25());
+        rawData.put("aqiPm10", telemetry.getAqiPm10());
+        rawData.put("aqiCo", telemetry.getAqiCo());
+        rawData.put("aqiSo2", telemetry.getAqiSo2());
+        rawData.put("aqiNo2", telemetry.getAqiNo2());
+        rawData.put("aqiO3", telemetry.getAqiO3());
+        rawData.put("overallAqi", telemetry.getOverallAqi());
+
+        return ResponseEntity.ok(rawData);
     }
 
     // TODO: Add the controller to get AQI and raw data by selected day

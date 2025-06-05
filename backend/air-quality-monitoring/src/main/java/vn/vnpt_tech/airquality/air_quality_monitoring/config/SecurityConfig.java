@@ -31,13 +31,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/register",
-                                "/api/auth/login",
-                                "/api/auth/verify",
-                                "/api/auth/forgot-pwd",
-                                "/api/auth/reset-pwd",
-                                "/api/devices/**"
-//                                "/api/telemetry/*"
+                                "/api/auth/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

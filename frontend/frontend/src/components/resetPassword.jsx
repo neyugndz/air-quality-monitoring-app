@@ -37,7 +37,7 @@ function ResetPassword() {
         }
 
         try {
-            const response = await fetch("http://localhost:8080/api/auth/reset-pwd", {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/reset-pwd`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, code, newPassword, confirmPassword }),

@@ -1,7 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Header() {
+  const navigate = useNavigate(); 
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("jwt_token");
+
+    navigate('/login');
+  }
   return (
     <header>
       <div className="logo">
@@ -22,7 +29,7 @@ function Header() {
         <div className="dropdown-content">
           <Link to="/profile"><i className="fa-solid fa-user-ninja"></i>Profile</Link>
           <Link to="/settings"><i className="fa-solid fa-gear"></i>Settings</Link>
-          <Link to="/login" className="logout"><i className="fa-solid fa-right-from-bracket"></i>Logout</Link>
+          <Link to="/login" onClick={handleLogout} className="logout"><i className="fa-solid fa-right-from-bracket"></i>Logout</Link>
         </div>
       </div>
     </header>

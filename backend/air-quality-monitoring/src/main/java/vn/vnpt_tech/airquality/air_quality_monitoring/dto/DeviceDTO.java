@@ -13,7 +13,6 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -23,14 +22,19 @@ import java.util.Map;
 public class DeviceDTO {
     private String deviceId;
     private String stationName;
-
+    private Double latitude;
+    private Double longitude;
     private String locationName;
     private String lastUpdatedDate;
+    private Integer overallAqi;
 
     // Construct the desired DeviceDTO to support the display on the FE
     public DeviceDTO(Device device, Telemetry telemetry) {
         this.deviceId = device.getDeviceId();
-        this.stationName = getStationNameFromDeviceName(device.getDeviceName());
+        this.stationName = device.getStationName();
+        this.latitude = device.getLatitude();
+        this.longitude = device.getLongitude();
+        this.overallAqi = telemetry.getOverallAqi();
 
         if (device.getLatitude() != null && device.getLongitude() != null) {
             this.locationName = reverseGeocode(device.getLatitude(), device.getLongitude());
@@ -38,39 +42,12 @@ public class DeviceDTO {
             this.locationName = "Unknown Location";
         }
 
-        if (telemetry != null && telemetry.getTimestamp() != null) {
-            this.lastUpdatedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("dd-MM--yyyy HH:mm:ss"));
+        if (telemetry.getTimestamp() != null) {
+            this.lastUpdatedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
         } else {
             this.lastUpdatedDate = "N/A";
         }
 
-    }
-
-    /**
-     * Mapping the Device Name to the corresponding Station for better display
-     * @param name
-     * @return
-     */
-    private String getStationNameFromDeviceName(String name) {
-        Map<String, String> map = new HashMap<>();
-        map.put("HoanKiemLakeSensor", "Hoan Kiem District");
-        map.put("BaDinhSquareSensor", "Ba Đình Square");
-        map.put("USTHSensor", "USTH University");
-        map.put("BacTuLiemIndustrialParkSensor", "Bac Tu Liem District");
-        map.put("DongAnhDistrictSensor", "Dong Anh District");
-        map.put("LongBienBridgeSensor", "Long Bien Bridge");
-        map.put("NoiBaiAirportSensor", "Noi Bai Airport");
-        map.put("CauGiayParkSensor", "Cau Giay Park");
-        map.put("NgaTuSoSensor", "Nga Tu So Intersection");
-        map.put("ThuLeParkSensor", "Thu Le Park");
-        map.put("HaDongDistrictSensor", "Ha Dong District");
-        map.put("DongXuanMarket", "Dong Xuan Market");
-        map.put("PhamVanDongSensor", "Pham Van Dong Street");
-        map.put("HoangMaiDistrictSensor", "Hoang Mai District");
-        map.put("HanoiRailwayStationSensor", "Ha Noi Railway Station");
-        map.put("DeviceNguyenTest1", "VNPT Technology");
-
-        return map.getOrDefault(name, "Unknown Station");
     }
 
     /**
@@ -82,7 +59,7 @@ public class DeviceDTO {
     public String reverseGeocode(double lat, double lon) {
         try {
             String url = String.format(
-                    "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json&zoom=14&addressdetails=1",
+                    "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json&zoom=14&addressdetails=1&lang=en",
                     lat, lon
             );
 
@@ -90,6 +67,7 @@ public class DeviceDTO {
 
             HttpHeaders headers = new HttpHeaders();
             headers.add("User-Agent", "AirQualityMonitoringApp/1.0 (nnguyendang318@gmail.com)");
+            headers.add("Accept-Language", "en");
 
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
@@ -105,5 +83,4 @@ public class DeviceDTO {
 
         return String.format("Unknown Address for (%.4f, %.4f)", lat, lon);
     }
-
 }

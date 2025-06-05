@@ -13,8 +13,11 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import Header from './header.jsx';
+import { DeviceService } from '../service/deviceService.js';
+import { TelemetryService } from '../service/telemetryService.js';
 
 // Register Chart.js components
 ChartJS.register(
@@ -32,11 +35,91 @@ function Dashboard() {
   const [selectedPollutant, setSelectedPollutant] = useState('CO');
   const [timeFormat, setTimeFormat] = useState('Tháng');
   const [timeValue, setTimeValue] = useState('2025-03');
-  // const [forecastRange, setForecastRange] = useState('6h');
-  
+
+  const [devices, setDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [deviceData, setDeviceData] = useState(null);
+  const [aqi, setAqi] = useState(null); 
+  const [showAqi, setShowAqi] = useState(false);
+  const [rawData, setRawData] = useState({});
 
   const currentAQI = 22;
 
+  /**
+   * Load Device List from backend
+   */
+  useEffect(() => {
+    DeviceService.index()
+      .then(res => {
+        setDevices(res.data);
+        if(res.data.length > 0) {
+          setSelectedDeviceId(res.data[0]?.deviceId);
+        }
+      })
+      .catch(err => console.error("Error loading devices ", err));
+  }, []);
+
+  /**
+   * Load telemetry in DTO format of selected devices
+   */
+  useEffect(() => {
+    if (!selectedDeviceId) 
+      return;
+    DeviceService.single(selectedDeviceId)
+      .then(res => {
+        setDeviceData(res.data);
+      })
+      .catch(err => {
+        console.error('Error loading device data', err);
+        setDeviceData(null);
+      });
+  }, [selectedDeviceId]);
+
+  /**
+   * Load latest overall AQI, Raw Pollutant and AQI of Pollutatn data from selected devices/station
+   */
+  useEffect(() => {
+    if (!selectedDeviceId) 
+      return;
+
+    TelemetryService.singleRawDataAndAQI(selectedDeviceId)
+      .then(res => {
+        setAqi(res.data.overallAqi); 
+        setRawData(res.data);   
+      })
+      .catch(err => {
+        console.error('Error loading telemetry and AQI data', err);
+        setAqi(null);
+        setRawData(null);
+      });
+  }, [selectedDeviceId]);
+
+  // Toggle between AQI and raw pollutant data
+  const handleAqiToggle = () => {
+    setShowAqi(prevState => !prevState); 
+  };
+  
+
+  // Get the AQI category, color, icon, and advice
+  const getAqiCategory = (aqi) => {
+    if (aqi <= 50) {
+      return { category: 'Good', backgroundColor: '#00e400', icon: '😊', advice: 'Air quality is satisfactory. You can go outside.' };
+    } else if (aqi <= 100) {
+      return { category: 'Average', backgroundColor: '#ffff00', icon: '😐', advice: 'Moderate air quality. Sensitive groups should limit outdoor activities.' };
+    } else if (aqi <= 150) {
+      return { category: 'Poor', backgroundColor: '#ff7e00', icon: '😷', advice: 'Air quality is unhealthy for sensitive groups. Limit outdoor exposure.' };
+    } else if (aqi <= 200) {
+      return { category: 'Bad', backgroundColor: '#ff0000', icon: '🤢', advice: 'Air quality is unhealthy. Sensitive groups should avoid going out.' };
+    } else if (aqi <= 300) {
+      return { category: 'Dangerous', backgroundColor: '#8f3f97', icon: '☠️', advice: 'Dangerous air quality. Avoid going outside.' };
+    } else {
+      return { category: 'Hazardous', backgroundColor: '#7e0023', icon: '☠️', advice: 'Very hazardous. Everyone should stay indoors.' };
+    }
+  };
+
+  const { category, backgroundColor, icon, advice } = aqi ? getAqiCategory(aqi) : {};
+
+  
   // For the dynamic table filtering
   const pollutants = [
     { key: 'co', label: 'CO (ppm)' },
@@ -104,37 +187,6 @@ function Dashboard() {
     }
   };
 
-
-  const statisticsData = {
-    labels: ['01', '05', '10', '15', '20', '25', '30'],
-    datasets: [
-      {
-        label: 'CO (ppm)',
-        data: [128, 130, 125, 140, 120, 110, 128],
-        borderColor: 'rgba(255, 99, 132, 1)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        tension: 0.3,
-        fill: true,
-        pointRadius: 3,
-      },
-    ],
-  };
-
-  const forecastData = {
-    labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
-    datasets: [
-      {
-        label: 'Dự báo AQI',
-        data: [212, 215, 218, 220, 219, 217],
-        fill: true,
-        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-        borderColor: 'rgba(255, 159, 64, 1)',
-        tension: 0.4,
-        pointRadius: 4,
-      },
-    ],
-  };
-
   return (
     <div className="home-page">
       <Header/>
@@ -144,19 +196,19 @@ function Dashboard() {
           {/* Left column content */}
           <div className="dashboard-left">
             {/* AQI Card Summary */}
-            <div className="dashboard-card-aqi-summary">
+            <div className="dashboard-card-aqi-summary" style={{ backgroundColor }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-evenly',
                 alignItems: 'center',
-                color: 'white'
+                color: 'black'
               }}>
                {/* Left: AQI Label + Icon + Number */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ fontSize: '20px', fontWeight: 'bold' }}>Air Quality Index</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
-                      color: '#d32f2f',
+                      color: "#D32F2F",
                       width: '50px',
                       height: '50px',
                       display: 'flex',
@@ -164,16 +216,16 @@ function Dashboard() {
                       justifyContent: 'center',
                       fontSize: '40px'
                     }}>
-                    🤢
+                    {icon}
                     </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold' }}>212</div>
+                    <div style={{ fontSize: '40px', fontWeight: 'bold' }}>{aqi}</div>
                   </div>
                 </div>
 
                 {/* Right: Danger Label and Advice */}
                 <div style={{ textAlign: 'left', lineHeight: '1.4' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold' }}>Bad</div>
-                  <div style={{ fontSize: '16px' }}>Sensitive groups should avoid going out. Others should limit going out.</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{category}</div>
+                  <div style={{ fontSize: '16px' }}>{advice}</div>
                 </div>
               </div>
             </div>
@@ -183,16 +235,21 @@ function Dashboard() {
             <div className="station-info">
               <div className="station-info-left">
                 <div className="station-location">
-                  <i className="fas fa-map-marker-alt"></i> 124 Hoang Quoc Viet
+                  <i className="fas fa-map-marker-alt"></i>{' '}
+                  {deviceData?.locationName || 'Loading...'}
                 </div>
                 <div className="station-time">
-                  <i className="fas fa-clock"></i> Last updated: <b>10:04</b> | <b>20/03/2025</b>
+                  <i className="fas fa-clock"></i> Last updated:{' '}
+                  <b>{deviceData?.lastUpdatedDate?.split(' ')[1] || '--:--'}</b> |{' '}
+                  <b>{deviceData?.lastUpdatedDate?.split(' ')[0] || 'dd-mm-yyyy'}</b>
                 </div>
               </div>
               <div className="station-select">
-                <label htmlFor="stationDropdown" style={{ fontSize: '14px', marginRight: '6px' }}>Choose station:</label>
+                <label htmlFor="stationDropdown" style={{ fontSize: '14px' }}>Choose station:</label>
                 <select
                   id="stationDropdown"
+                  value={selectedDeviceId}
+                  onChange={(e) => setSelectedDeviceId(e.target.value)}
                   style={{
                     fontSize: '14px',
                     padding: '6px 10px',
@@ -202,9 +259,11 @@ function Dashboard() {
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="cg">Cau Giay Station</option>
-                  <option value="bth">Ba Dinh Station</option>
-                  <option value="tx">Thanh Xuan Station</option>
+                  {devices.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.stationName}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -214,35 +273,49 @@ function Dashboard() {
               <div className="pollutant-value-container">
                 <div className="pollutant-value">
                   <div className="pollutant">CO</div>
-                  <div className="pollutant">128 ppm</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiCo}` : 'Loading...') : (rawData ? `${rawData.co} ppm` : 'Loading...')}
+                  </div>
                 </div>
                 <div className="pollutant-value">
                   <div className="pollutant">SO2</div>
-                  <div className="pollutant">12 ppm</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiSo2}` : 'Loading...') : (rawData ? `${rawData.so2} ppm` : 'Loading...')}
+                  </div>
                 </div>
               </div>
               <div className="pollutant-value-container">
                 <div className="pollutant-value">
                   <div className="pollutant">PM2.5</div>
-                  <div className="pollutant">294 µg/m³</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiPm25}` : 'Loading...') : (rawData ? `${rawData.pm25} µg/m³` : 'Loading...')}
+                  </div>
                 </div>
                 <div className="pollutant-value">
                   <div className="pollutant">PM10</div>
-                  <div className="pollutant">180 µg/m³</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiPm10}` : 'Loading...') : (rawData ? `${rawData.pm10} µg/m³` : 'Loading...')}
+                  </div>
                 </div>
               </div>
               <div className="pollutant-value-container">
                 <div className="pollutant-value">
                   <div className="pollutant">O3</div>
-                  <div className="pollutant">32 ppm</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiO3}` : 'Loading...') : (rawData ? `${rawData.o3} ppm` : 'Loading...')}
+                  </div>
                 </div>
                 <div className="pollutant-value">
                   <div className="pollutant">NO2</div>
-                  <div className="pollutant">67 ppm</div>
+                  <div className="pollutant">
+                    {showAqi ? (rawData ? `${rawData.aqiNo2}` : 'Loading...') : (rawData ? `${rawData.no2} ppm` : 'Loading...')}
+                  </div>
                 </div>
               </div>
               <div className="aqi-link-column">
-                <a href="#" style={{textDecoration: 'none'}}>Show the AQI value</a>
+                <a href="#" style={{ textDecoration: 'none' }} onClick={handleAqiToggle}>
+                  {showAqi ? 'Show Pollutant Values' : 'Show the AQI value'}
+                </a>
               </div>
             </div>
 

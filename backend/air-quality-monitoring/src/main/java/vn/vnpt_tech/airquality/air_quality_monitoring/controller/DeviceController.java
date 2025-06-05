@@ -9,6 +9,7 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.service.DeviceService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,9 @@ public class DeviceController {
 
     @Autowired
     private TelemetryRepository telemetryRepository;
+
+    @Autowired
+    private DeviceService deviceService;
 
     @PostMapping
     public ResponseEntity<Device> createDevice(@RequestBody Device device){
@@ -79,6 +83,7 @@ public class DeviceController {
         return deviceRepository.findAll();
     }
 
+
     /**
      * Return selected devices with latest telemetry in DTO format for FE
      */
@@ -95,7 +100,25 @@ public class DeviceController {
                 .orElse(null);
 
         return ResponseEntity.ok(new DeviceDTO(device, telemetry));
+    }
 
+    /**
+     * Endpoint to return All Device Information for Map Marker Set up
+     */
+    @GetMapping("/location-aqi")
+    public ResponseEntity<List<DeviceDTO>> getAllDeviceWithAqi() {
+        List<Device> devices = deviceService.getAllDevices();
+        List<DeviceDTO> deviceDTOs = new ArrayList<>();
+
+        for (Device device : devices) {
+            Optional<Telemetry> telemetryOpt = telemetryRepository.findTopByDeviceIdOrderByTimestampDesc(device.getDeviceId());
+            if (telemetryOpt.isPresent()) {
+                Telemetry telemetry = telemetryOpt.get();
+                deviceDTOs.add(new DeviceDTO(device, telemetry));
+            }
+        }
+
+        return ResponseEntity.ok(deviceDTOs);
     }
 
 }
