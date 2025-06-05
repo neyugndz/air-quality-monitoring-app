@@ -35,6 +35,8 @@ function Dashboard() {
   const [selectedPollutant, setSelectedPollutant] = useState('CO');
   const [timeFormat, setTimeFormat] = useState('Tháng');
   const [timeValue, setTimeValue] = useState('2025-03');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
 
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -120,6 +122,10 @@ function Dashboard() {
   const { category, backgroundColor, icon, advice } = aqi ? getAqiCategory(aqi) : {};
 
   
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prevState => !prevState);
+  };
+
   // For the dynamic table filtering
   const pollutants = [
     { key: 'co', label: 'CO (ppm)' },
@@ -189,9 +195,19 @@ function Dashboard() {
 
   return (
     <div className="home-page">
-      <Header/>
+      <Header toggleSidebar={toggleSidebar}/>
 
-      <div className="dashboard" style={{ backgroundColor: '#f4f6f8' }}>
+       {/* Sidebar */}
+      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <ul>
+          <li><Link to="/home">Dashboard</Link></li>
+          <li><Link to="/settings">Settings</Link></li>
+          <li><Link to="/profile">Profile</Link></li>
+          {/* Add more links if needed */}
+        </ul>
+      </div>
+
+      <div className={`dashboard ${isSidebarOpen ? 'shifted' : ''}`} style={{ backgroundColor: '#f4f6f8' }}>
         <div className="dashboard-layout">
           {/* Left column content */}
           <div className="dashboard-left">

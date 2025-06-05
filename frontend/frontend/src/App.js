@@ -24,7 +24,14 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify" element={<VerificationPage />}/>
-        <Route
+
+        <Route path="/home" element={<Dashboard />}/>
+        <Route path="/forecast" element={<ForecastPage />}/>
+        <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
+        <Route path="/settings" element={<Settings />}/>
+        <Route path="/profile" element={<Profile />}/>
+        
+        {/* <Route
           path="/home"
           element={<ProtectedRoute element={<Dashboard />} />}
         />
@@ -43,7 +50,7 @@ function App() {
         <Route
           path="/profile"
           element={<ProtectedRoute element={<Profile />} />}
-        />
+        /> */}
       </Routes>
     </BrowserRouter>
   );

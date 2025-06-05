@@ -111,6 +111,61 @@
   display: block;
 }
 
+
+/* Sidebar Styles */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: -250px; /* Initially hidden on the left side */
+  background-color: #ffffff; /* Light background color to match your design */
+  color: #253892; /* Adjust text color to match the header */
+  transition: 0.3s ease;
+  box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1); /* Add shadow effect for a subtle design */
+  padding-top: 20px;
+  z-index: 100;
+}
+
+.sidebar.open {
+  left: 0; /* Slide in when open */
+}
+
+.sidebar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  padding: 15px;
+  font-size: 18px;
+  border-bottom: 1px solid #dcdcdc; /* Light border for separation */
+  transition: background-color 0.3s ease;
+}
+
+.sidebar ul li a {
+  color: #253892; /* Use your header color */
+  text-decoration: none;
+  display: block;
+  padding: 10px;
+}
+
+.sidebar ul li a:hover {
+  background-color: #f5f7fb; /* Subtle hover effect */
+  color: #005aab; /* Darker color for better visibility on hover */
+}
+
+/* Burger icon styles */
+.burger-icon {
+  font-size: 30px;
+  color: #253892; /* Match with the header */
+  cursor: pointer;
+  display: block; /* Visible on mobile */
+  z-index: 2000;
+  margin-left: 10px;
+}
+
+
 /* Content Section Styles */
 .dashboard {
   text-align: center;
@@ -119,6 +174,12 @@
   background-color: #e6f1f8;
   min-height: calc(100vh - 70px);
   width: 100%;
+}
+
+.dashboard.shifted {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
 /* Dashboard Styles */
@@ -277,4 +338,24 @@
   }
 }
 
+@media (max-width: 768px) {
+  /* Sidebar adjustments for mobile */
+  .sidebar {
+    left: -250px; 
+  }
+
+  .sidebar.open {
+    left: 0; 
+  }
+
+
+  .burger-icon {
+    display: block;
+  }
+
+  .dashboard-main-content.shifted {
+    margin-left: 250px; 
+    width: calc(100% - 250px); 
+  }
+}
 

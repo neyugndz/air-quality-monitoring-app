@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-function Header() {
+function Header({ toggleSidebar }) {
   const navigate = useNavigate(); 
 
   const handleLogout = () => {
@@ -12,6 +12,9 @@ function Header() {
   return (
     <header>
       <div className="logo">
+        <div className="burger-icon" onClick={toggleSidebar}>
+          <i className="fas fa-bars"></i>
+        </div>
         <Link to="/home" aria-label="Go to Dashboard">
           <img
             src="https://www.vnpt-technology.vn/front/images/logo_vnpt_technology_vn.svg"
@@ -20,6 +23,7 @@ function Header() {
           />
         </Link>
       </div>
+
       <div className="title">
         <span className="logo-text">Air Quality Monitoring</span>
       </div>
