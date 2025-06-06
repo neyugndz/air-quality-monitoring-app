@@ -81,7 +81,7 @@ function SensorMap() {
     <div>
       {/* Show loading screen if data is still being fetched */}
       {loading ? (
-    <div style={{ textAlign: 'center', marginTop: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '340px' }}>
+    <div style={{ textAlign: 'center', marginTop: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
       <h3>Loading... Please wait.</h3>
       <div>
         <ThreeDots 
@@ -96,7 +96,7 @@ function SensorMap() {
     </div>
       ) : (
         // MapContainer with markers
-        <MapContainer center={[21.0285, 105.8542]} zoom={13} style={{ marginTop: '-10px', height: '400px', width: '100%' }}>
+        <MapContainer center={[21.0285, 105.8542]} zoom={13} style={{ marginTop: '-10px', height: '70vh', width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           {stationData && stationData.map((sensor, idx) => {
             // Create a custom icon with the background color based on AQI

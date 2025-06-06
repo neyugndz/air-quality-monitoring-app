@@ -30,7 +30,8 @@ public class Device {
     private String stationName;
 
     public String getStationName() {
-        if (deviceName == null) return "Unknown Station";
+        if (deviceName == null)
+            return "Unknown Station";
 
         return switch (deviceName) {
             case "DeviceNguyenTest1" -> "VNPT Technology";

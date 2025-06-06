@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import vn.vnpt_tech.airquality.air_quality_monitoring.dto.TelemetryDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
 import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
@@ -14,7 +15,9 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.service.TelemetryService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
@@ -156,6 +159,47 @@ public class TelemetryController {
     }
 
     // TODO: Add the controller to get AQI and raw data by selected day
+    /**
+     * Fetch all pollutant data for a device on a specific day
+     * @param deviceId
+     * @param date The date for the historical data (in format dd-MM-yyyy)
+     * @return All data for the device on that specific day
+     */
+
+    @GetMapping("/historical-all/{deviceId}")
+    public ResponseEntity<List<TelemetryDTO>> getAllDataForDay(
+            @PathVariable String deviceId,
+            @RequestParam String date // Format: dd-MM-yyyy
+    ) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+            LocalDate queryDate = LocalDate.parse(date, formatter);
+            List<Telemetry> data = telemetryRepository.findByDeviceId(deviceId);
+
+            // Filter the data based on the date part of the timestamp
+            List<Telemetry> filteredData = data.stream()
+                    .filter(t -> t.getTimestamp().toLocalDate().equals(queryDate))
+                    .collect(Collectors.toList());
+
+            if (filteredData.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            // Convert filtered data to DTOs and format the timestamp
+            List<TelemetryDTO> telemetryDTOs = filteredData.stream()
+                    .map(telemetry -> {
+                        // Format timestamp
+                        String formattedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
+                        // Return a DTO with the formatted timestamp
+                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getOverallAqi());
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(telemetryDTOs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 
     // TODO: Add controller to get AQI based on custom range
 }

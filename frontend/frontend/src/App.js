@@ -13,6 +13,7 @@ import HealthRecommendationPage from "./components/healthRcmPage.jsx";
 import Settings from "./components/settings.jsx";
 import Profile from "./components/profile.jsx";
 import ProtectedRoute from "./config/ProtectedRoute.js";
+import TrendAnalysisPage from "./components/trendAnalysisPage.jsx";
 
 function App() {
   return (
@@ -25,15 +26,19 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify" element={<VerificationPage />}/>
 
-        <Route path="/home" element={<Dashboard />}/>
+        {/* <Route path="/home" element={<Dashboard />}/>
         <Route path="/forecast" element={<ForecastPage />}/>
         <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
         <Route path="/settings" element={<Settings />}/>
-        <Route path="/profile" element={<Profile />}/>
+        <Route path="/profile" element={<Profile />}/> */}
         
-        {/* <Route
+        <Route
           path="/home"
           element={<ProtectedRoute element={<Dashboard />} />}
+        />
+        <Route
+          path="/trend-analysis"
+          element={<ProtectedRoute element={<TrendAnalysisPage />} />}
         />
         <Route
           path="/forecast"
@@ -50,7 +55,7 @@ function App() {
         <Route
           path="/profile"
           element={<ProtectedRoute element={<Profile />} />}
-        /> */}
+        />
       </Routes>
     </BrowserRouter>
   );
