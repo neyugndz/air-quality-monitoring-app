@@ -32,6 +32,7 @@ public class Users implements UserDetails {
     private boolean enabled = false;
     private String verificationCode;
     private String resetCode;
+    private Integer aqiThreshold = 100;
 
     // Health info
     private LocalDate dateOfBirth;

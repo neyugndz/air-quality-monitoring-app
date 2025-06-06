@@ -20,6 +20,7 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepositor
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
 
 import javax.swing.text.html.Option;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -157,6 +158,31 @@ public class TelemetryService {
             }
         }
     }
+
+    /**
+     * Method to calculate the percentage of polluted based on AqiThreshold set up by user, Date and Station
+     * @param deviceId
+     * @param date
+     * @param aqiThreshold
+     * @return polluted time percentage
+     */
+    public double calculatePollutedTimePercentage(String deviceId, LocalDate date, int aqiThreshold) {
+        // Fetch telemetry data for the specific device and date
+        List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndDate(deviceId, date);
+
+        if (telemetryData.isEmpty()) {
+            return 0.0;
+        }
+
+        // Count the number of entries that are considered polluted based on the AQI threshold
+        long pollutedCount = telemetryData.stream()
+                .filter(telemetry -> telemetry.getOverallAqi() > aqiThreshold)
+                .count();
+
+        // Calculate the polluted time percentage
+        return (double) pollutedCount / telemetryData.size() * 100;
+    }
+
 
 
 

@@ -1,6 +1,7 @@
 import '../css/dashboard.css';
 import SensorMap from './sensorMap';
 import { Link } from "react-router-dom";
+import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,6 +9,7 @@ import {
   BarElement,
   LineElement,
   PointElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -19,6 +21,7 @@ import { TelemetryService } from '../service/telemetryService.js';
 
 // Register Chart.js components
 ChartJS.register(
+  ArcElement,
   CategoryScale,
   LinearScale,
   BarElement,
@@ -59,7 +62,12 @@ function Dashboard() {
     o3: false,
   });
 
+  // Date for tracking historical
   const [date, setDate] = useState('');
+
+  // Date for viewing the Polluted Percentage
+  const [selectedDate, setSelectedDate] = useState(''); 
+  const [pollutedTimePercentage, setPollutedTimePercentage] = useState(null);
   const [dataRows, setDataRows] = useState([]); 
 
   // For the dynamic table filtering
@@ -116,6 +124,28 @@ function Dashboard() {
         setRawData(null);
       });
   }, [selectedDeviceId]);
+
+  /**
+   * Fetch polluted time percentage based on the selected date
+   */
+  useEffect(() =>{
+    if(selectedDate) {
+      TelemetryService.pollutedTimePercentage(selectedDeviceId, selectedDate)
+        .then(res => {
+          if (res.status === 204) {
+          console.log('No data found for this date.');
+          setPollutedTimePercentage(null); 
+          } else {
+            setPollutedTimePercentage(res.data); 
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching polluted time percentage:', err);
+          setPollutedTimePercentage(null);
+        });
+    }
+  }, [selectedDeviceId, selectedDate]);
+
 
   // Toggle between AQI and raw pollutant data
   const handleAqiToggle = () => {
@@ -195,35 +225,20 @@ function Dashboard() {
     fetchData();
   };
 
-
-  // Percentage time of being polluted
-  // Define a threshold for pollutants
-  const threshold = 50; // PM2.5 or PM10 > 50 µg/m³ will be considered polluted
-
-  // Calculate the percentage of time the air is polluted
-  const calculatePollutedTime = (data) => {
-    const totalData = data.length;
-    const pollutedData = data.filter(row => row.pm25 > threshold || row.pm10 > threshold);
-    const pollutedPercentage = (pollutedData.length / totalData) * 100;
-    return pollutedPercentage;
-  };
-
-  // Use this calculation to generate data for the Pie chart
-  const getPollutedTimeData = (data) => {
-    const pollutedTime = calculatePollutedTime(data);
-
-    return {
-      labels: ['Polluted Time', 'Clean Time'],
-      datasets: [{
-        data: [pollutedTime, 100 - pollutedTime],
+  // Get the data here
+  const pieData = {
+    labels: ['Polluted Time', 'Clean Time'],
+    datasets: [
+      {
+        data: [
+          pollutedTimePercentage,
+          pollutedTimePercentage !== null ? 100 - pollutedTimePercentage : 0,
+        ],
         backgroundColor: ['#FF0000', '#00FF00'],
         hoverBackgroundColor: ['#FF4C4C', '#4CFF4C'],
-      }],
-    };
+      },
+    ],
   };
-
-  // After fetching data and updating the state
-  const pieData = getPollutedTimeData(dataRows); // `dataRows` contains your telemetry data
 
   return (
     <div className="home-page">
@@ -375,9 +390,61 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* TODO: Implement Polluted Time Calculation */}
-            
-                
+            {/* TODO: Implement Polluted Time Calculation Pie Chart */}
+            <div className="dashboard-card-pie" style={{ 
+              padding: '70px 50px', 
+              backgroundColor: 'white', 
+              borderRadius: '8px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              display: 'flex', 
+              flexDirection: 'column',
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              width: '90vh',
+              height: '40vh'  
+            }}>
+              <h1 style={{ marginBottom: '20px', fontSize: '24px', color: '#8DD8FF' }}>Polluted Time Percentage</h1>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  fontSize: '14px',
+                  padding: '6px 10px',
+                  borderRadius: '5px',
+                  border: '1px solid #ccc',
+                  cursor: 'pointer',
+                  marginBottom: '20px',
+                }}
+              />
+              {pollutedTimePercentage === null ? (
+              <div>
+                <div>No data available for the selected date.</div>
+                <p>Please select a valid date to see the polluted time percentage.</p>
+              </div>
+            ) : (
+                <Pie
+                  data={pieData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: (tooltipItem) => {
+                            return `${tooltipItem.label}: ${tooltipItem.raw.toFixed(2)}%`;
+                          },
+                        },
+                      },
+                    },
+                  }}
+                />
+              )}
+            </div>
           </div>
 
           {/* Right column: Map */}
@@ -479,7 +546,6 @@ function Dashboard() {
                 />
               </div>
 
-              {/* Apply Button */}
               <button
                 style={{
                   backgroundColor: '#007bff',
@@ -569,7 +635,7 @@ function Dashboard() {
                       key={i}
                       style={{
                         borderBottom: '1px solid #e9ecef',
-                        backgroundColor: i % 2 === 0 ? '#f1f3f5' : 'transparent', // Alternating row color
+                        backgroundColor: i % 2 === 0 ? '#f1f3f5' : 'transparent', 
                         transition: 'background-color 0.2s',
                       }}
                     >

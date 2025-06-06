@@ -201,5 +201,33 @@ public class TelemetryController {
         }
     }
 
-    // TODO: Add controller to get AQI based on custom range
+    /**
+     * Get the polluted time percentage for a specific device and date
+     */
+    @GetMapping("/polluted-time-percentage/{deviceId}")
+    public ResponseEntity<Double> getPollutedTimePercentage(
+            @PathVariable String deviceId,
+            @RequestParam String date, // Date in the format dd-MM-yyyy
+            @AuthenticationPrincipal Users user) {
+
+        try {
+            // Parse the date from the query parameter
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate queryDate = LocalDate.parse(date, formatter);
+
+            int aqiThreshold = user.getAqiThreshold();
+            List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndDate(deviceId, queryDate);
+            
+            if (telemetryData.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            double pollutedTimePercentage = telemetryService.calculatePollutedTimePercentage(deviceId, queryDate, aqiThreshold);
+
+            return ResponseEntity.ok(pollutedTimePercentage);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
 }
