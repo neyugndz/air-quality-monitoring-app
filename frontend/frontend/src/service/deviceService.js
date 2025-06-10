@@ -1,4 +1,4 @@
-import { get, post, put, destroy } from '../config/api';
+import { get } from '../config/api';
 
 export const DeviceService = {
   index: () => get('/devices'), 

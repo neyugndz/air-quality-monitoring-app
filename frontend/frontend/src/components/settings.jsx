@@ -9,6 +9,11 @@ import Header from "./header.jsx";
 // TODO: Add the Edit, Save button for the Input field (Disable the Input by default)
 function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prevState => !prevState);
+  };
 
   const tabs = [
     { key: "profile", label: "Profile" },
@@ -18,7 +23,25 @@ function Settings() {
 
   return (
     <div className="home-page">
-      <Header />
+      <Header toggleSidebar={toggleSidebar}/>
+        {/* Sidebar */}
+        <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+          <ul>
+            <li><Link to="/home">
+              <i className="fas fa-tachometer-alt"></i> Dashboard
+              </Link></li>
+            <li><Link to="/trend-analysis">
+              <i className="fas fa-chart-line"></i> Trend Analysis
+              </Link></li>
+            <li><Link to="/health-recommendations">
+              <i className="fas fa-heart"></i> Health Recommendation
+              </Link></li>
+            <li><Link to="/forecast">
+              <i className="fas fa-cloud-sun"></i> Forecast
+              </Link></li>
+          </ul>
+        </div>
+    <div className={`page ${isSidebarOpen ? 'shifted' : ''}`}>
 
       <div className="dashboard settings-container">
         <div className="settings-content">
@@ -44,6 +67,7 @@ function Settings() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
 

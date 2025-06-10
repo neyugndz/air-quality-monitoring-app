@@ -390,7 +390,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* TODO: Implement Polluted Time Calculation Pie Chart */}
+            {/* Polluted Time Calculation Pie Chart */}
             <div className="dashboard-card-pie" style={{ 
               padding: '70px 50px', 
               backgroundColor: 'white', 

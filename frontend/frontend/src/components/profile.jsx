@@ -1,9 +1,14 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "./header.jsx";
 
 function Profile() {
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+    const toggleSidebar = () => {
+      setIsSidebarOpen(prevState => !prevState);
+    };
 
   // Example profile data
   const profile = {
@@ -31,7 +36,25 @@ function Profile() {
 
   return (
     <div className="home-page">
-      <Header />
+      <Header toggleSidebar={toggleSidebar}/>
+        {/* Sidebar */}
+        <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+          <ul>
+            <li><Link to="/home">
+              <i className="fas fa-tachometer-alt"></i> Dashboard
+              </Link></li>
+            <li><Link to="/trend-analysis">
+              <i className="fas fa-chart-line"></i> Trend Analysis
+              </Link></li>
+            <li><Link to="/health-recommendations">
+              <i className="fas fa-heart"></i> Health Recommendation
+              </Link></li>
+            <li><Link to="/forecast">
+              <i className="fas fa-cloud-sun"></i> Forecast
+              </Link></li>
+          </ul>
+        </div>
+    <div className={`page ${isSidebarOpen ? 'shifted' : ''}`}>
       <div className="dashboard settings-container">
         <div className="settings-content">
           <div
@@ -139,6 +162,7 @@ function Profile() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
 
