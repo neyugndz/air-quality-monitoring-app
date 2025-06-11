@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import '../css/settings.css'
 import ToggleSwitch from "./ToggleSwitch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencil } from "@fortawesome/free-solid-svg-icons";
 import Header from "./header.jsx";
+import { UserService } from "../service/userService.js";
 
 // TODO: Add the Edit, Save button for the Input field (Disable the Input by default)
 function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+
     
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
@@ -19,7 +22,27 @@ function Settings() {
     { key: "profile", label: "Profile" },
     { key: "preferences", label: "Preferences" },
     { key: "notifications", label: "Notifications" },
-  ];
+  ]; 
+
+  // Fetch profile and preferences data from the API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch user profile
+        const profileResponse = await UserService.single();
+        setProfile(profileResponse.data);
+
+      } catch (error) {
+        console.error("Error fetching profile or preferences:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (profile === null) {
+    return <div>Loading...</div>;  // Display loading message while waiting for profile data
+  }
 
   return (
     <div className="home-page">
@@ -60,7 +83,7 @@ function Settings() {
           </nav>
 
           {/* Content of Tab */}
-        {activeTab === "profile" && <ProfileTab />}
+        {activeTab === "profile" && <ProfileTab profile={profile} setProfile={setProfile} />}
         {activeTab === "preferences" && <PreferencesTab />}
         {activeTab === "notifications" && <NotificationsTab />}
 
@@ -145,21 +168,46 @@ function EditableField({
   );
 }
 
-function ProfileTab() {
-  const [email, setEmail] = useState("dangnguyen180904@gmail.com");
-  const [phone, setPhone] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("Man");
-  const [heightCm, setHeightCm] = useState("");
-  const [weightKg, setWeightKg] = useState("");
-  const [locationCustomization, setLocationCustomization] = useState("Use approximate location (based on IP)"); // Added here
-  const [asthma, setAsthma] = useState("");
-  const [respiratoryDisease, setRespiratoryDisease] = useState("");
-  const [heartDisease, setHeartDisease] = useState("");
-  const [allergies, setAllergies] = useState("");
-  const [pregnant, setPregnant] = useState("");
-  const [smoker, setSmoker] = useState("");
-  const [otherConditions, setOtherConditions] = useState("");
+function ProfileTab({ profile, setProfile }) {
+  const [email, setEmail] = useState(profile.email || "");
+  const [phone, setPhone] = useState(profile.phone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth || "");
+  const [gender, setGender] = useState(profile.gender || "");
+  const [heightCm, setHeightCm] = useState(profile.heightCm || "");
+  const [weightKg, setWeightKg] = useState(profile.weightKg || "");
+  const [locationCustomization, setLocationCustomization] = useState(profile.locationCustomization || "");
+
+  // Convert "yes" / "no" to boolean values
+  const [asthma, setAsthma] = useState(profile.asthma === "yes" ? true : false);
+  const [respiratoryDisease, setRespiratoryDisease] = useState(profile.respiratoryDisease === "yes" ? true : false);
+  const [heartDisease, setHeartDisease] = useState(profile.heartDisease === "yes" ? true : false);
+  const [allergies, setAllergies] = useState(profile.allergies === "yes" ? true : false);
+  const [pregnant, setPregnant] = useState(profile.pregnant === "yes" ? true : false);
+  const [smoker, setSmoker] = useState(profile.smoker === "yes" ? true : false);
+  const [otherConditions, setOtherConditions] = useState(profile.otherConditions || "");
+
+  // Handle Save Changes
+  const handleSave = () => {
+    const updatedProfile = {
+      email,
+      phone,
+      dateOfBirth,
+      gender,
+      heightCm,
+      weightKg,
+      locationCustomization,
+      asthma: asthma ? "yes" : "no",  // Convert boolean back to "yes" or "no"
+      respiratoryDisease: respiratoryDisease ? "yes" : "no",
+      heartDisease: heartDisease ? "yes" : "no",
+      allergies: allergies ? "yes" : "no",
+      pregnant: pregnant ? "yes" : "no",
+      smoker: smoker ? "yes" : "no",
+      otherConditions
+    };
+
+    setProfile(updatedProfile);  // Update the profile in the parent state (or send to backend)
+    console.log("Profile updated:", updatedProfile);  // For now, log the updated profile
+  };
 
   return (
     <div className="tab-content profile-tab">
@@ -168,12 +216,7 @@ function ProfileTab() {
         <ul className="settings-list">
           <EditableField label="Email address" type="email" value={email} onSave={setEmail} />
           <EditableField label="Phone Number" type="tel" value={phone} onSave={setPhone} />
-          <EditableField
-            label="Date of Birth"
-            type="date"
-            value={dateOfBirth}
-            onSave={setDateOfBirth}
-          />
+          <EditableField label="Date of Birth" type="date" value={dateOfBirth} onSave={setDateOfBirth} />
           <EditableField
             label="Gender"
             options={[
@@ -190,7 +233,6 @@ function ProfileTab() {
         </ul>
       </section>
 
-
       <section>
         <h2 className="section-title">Health Conditions</h2>
         <ul className="settings-list">
@@ -200,7 +242,7 @@ function ProfileTab() {
               { value: "yes", label: "Yes" },
               { value: "no", label: "No" },
             ]}
-            value={asthma}
+            value={asthma ? "yes" : "no"}  // Display "yes" or "no"
             onSave={setAsthma}
           />
           <EditableField
@@ -209,7 +251,7 @@ function ProfileTab() {
               { value: "yes", label: "Yes" },
               { value: "no", label: "No" },
             ]}
-            value={respiratoryDisease}
+            value={respiratoryDisease ? "yes" : "no"}
             onSave={setRespiratoryDisease}
           />
           <EditableField
@@ -218,7 +260,7 @@ function ProfileTab() {
               { value: "yes", label: "Yes" },
               { value: "no", label: "No" },
             ]}
-            value={heartDisease}
+            value={heartDisease ? "yes" : "no"}
             onSave={setHeartDisease}
           />
           <EditableField
@@ -227,7 +269,7 @@ function ProfileTab() {
               { value: "yes", label: "Yes" },
               { value: "no", label: "No" },
             ]}
-            value={allergies}
+            value={allergies ? "yes" : "no"}
             onSave={setAllergies}
           />
           <EditableField
@@ -237,7 +279,7 @@ function ProfileTab() {
               { value: "no", label: "No" },
               { value: "not-applicable", label: "Not applicable" },
             ]}
-            value={pregnant}
+            value={pregnant ? "yes" : "no"}
             onSave={setPregnant}
           />
           <EditableField
@@ -246,7 +288,7 @@ function ProfileTab() {
               { value: "yes", label: "Yes" },
               { value: "no", label: "No" },
             ]}
-            value={smoker}
+            value={smoker ? "yes" : "no"}
             onSave={setSmoker}
           />
           <EditableField
@@ -273,13 +315,16 @@ function ProfileTab() {
           />
         </ul>
       </section>
+
+      <button className="save-profile-button" onClick={handleSave}>
+        Save Changes
+      </button>
     </div>
   );
 }
-  
+
   function PreferencesTab() {
     const [displayLanguage, setDisplayLanguage] = useState("English");
-    const [units, setUnits] = useState("µg/m³");
     const [showPollutionAlerts, setShowPollutionAlerts] = useState(true);
     const [showHealthTips, setShowHealthTips] = useState(true);
     const [useLocation, setUseLocation] = useState(true);
@@ -287,7 +332,7 @@ function ProfileTab() {
     return (
       <div className="tab-content profile-tab">
         <section>
-          <h2 className="section-title">Language & Units</h2>
+          <h2 className="section-title">Language</h2>
           <ul className="settings-list">
             <li className="settings-item">
               <label>Display language</label>
@@ -298,17 +343,6 @@ function ProfileTab() {
               >
                 <option>English</option>
                 <option>Vietnamese</option>
-              </select>
-            </li>
-            <li className="settings-item">
-              <label>Units of measurement</label>
-              <select
-                value={units}
-                onChange={(e) => setUnits(e.target.value)}
-                className="settings-select"
-              >
-                <option>µg/m³</option>
-                <option>ppm</option>
               </select>
             </li>
           </ul>

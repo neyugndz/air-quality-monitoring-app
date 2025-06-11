@@ -1,5 +1,6 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,7 +33,6 @@ public class Users implements UserDetails {
     private boolean enabled = false;
     private String verificationCode;
     private String resetCode;
-    private Integer aqiThreshold = 100;
 
     // Health info
     private LocalDate dateOfBirth;
@@ -46,6 +46,10 @@ public class Users implements UserDetails {
     private Boolean pregnant;
     private Boolean smoker;
     private String otherConditions;
+
+    @OneToMany(mappedBy = "users")
+    @JsonIgnore
+    private List<UserPreferences> userPreferences;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -7,10 +7,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.TelemetryDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.UserPreferences;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
 import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.UserPreferencesRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.service.TelemetryService;
 
 import java.time.LocalDate;
@@ -25,6 +27,9 @@ import java.util.stream.Collectors;
 public class TelemetryController {
     @Autowired
     private TelemetryRepository telemetryRepository;
+
+    @Autowired
+    private UserPreferencesRepository userPreferencesRepository;
 
     @Autowired
     private TelemetryService telemetryService;
@@ -246,7 +251,7 @@ public class TelemetryController {
     @GetMapping("/polluted-time-percentage/{deviceId}")
     public ResponseEntity<Double> getPollutedTimePercentage(
             @PathVariable String deviceId,
-            @RequestParam String date, // Date in the format dd-MM-yyyy
+            @RequestParam String date,
             @AuthenticationPrincipal Users user) {
 
         try {
@@ -254,7 +259,10 @@ public class TelemetryController {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             LocalDate queryDate = LocalDate.parse(date, formatter);
 
-            int aqiThreshold = user.getAqiThreshold();
+            UserPreferences userPreferences = userPreferencesRepository.findByUsers(user)
+                    .orElseThrow(() -> new RuntimeException("User preferences not found"));
+
+            int aqiThreshold = userPreferences.getAqiThreshold();
             List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndDate(deviceId, queryDate);
             
             if (telemetryData.isEmpty()) {

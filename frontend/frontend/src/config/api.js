@@ -41,6 +41,6 @@ apiClient.interceptors.response.use(
   }
 );
 
-const { get, post, put, delete: destroy } = apiClient;
-export { get, post, put, destroy };
+const { get, post, put, delete: destroy, patch } = apiClient;
+export { get, post, put, destroy, patch };
 
