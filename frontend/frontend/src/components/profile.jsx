@@ -7,6 +7,7 @@ function Profile() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profile, setProfile] = useState(null); // State for user profile
+  const [preferences, setPreferences] = useState(null);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
@@ -16,8 +17,11 @@ function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await UserService.single(); // Call the backend to get user data
-        setProfile(response.data); // Set profile data
+        const response = await UserService.single(); 
+        setProfile(response.data); 
+
+        const preferecesRep = await UserService.singlePreferences();
+        setPreferences(preferecesRep.data);
       } catch (error) {
         console.error("Error fetching profile:", error);
       }
@@ -32,8 +36,8 @@ function Profile() {
     return val ? "Yes" : "No";
   };
 
-  if (!profile) {
-    return <div>Loading...</div>; // Show loading state until profile data is fetched
+  if (!profile || !preferences) {
+    return <div>Loading...</div>; 
   }
 
   return (
@@ -83,7 +87,7 @@ function Profile() {
                 </li>
                 <li className="settings-item">
                   <label>Phone Number</label>
-                  <span className="settings-value">{profile.phone || "Not set"}</span>
+                  <span className="settings-value">{profile.phoneNumber || "Not set"}</span>
                 </li>
                 <li className="settings-item">
                   <label>Date of Birth</label>
@@ -103,8 +107,7 @@ function Profile() {
                 </li>
                 <li className="settings-item">
                   <label>Location customization</label>
-                  {/* The location preferences is from the User Preferences */}
-                  <span className="settings-value">{profile.location || "Not set"}</span>
+                  <span className="settings-value">{preferences.locationCustomization || "Not set"}</span>
                 </li>
               </ul>
             </section>

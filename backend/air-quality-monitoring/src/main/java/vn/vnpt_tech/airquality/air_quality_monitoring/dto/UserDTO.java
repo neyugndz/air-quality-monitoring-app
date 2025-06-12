@@ -14,6 +14,7 @@ import java.time.LocalDate;
 public class UserDTO {
     private String email;
     private String name;
+    private String phoneNumber;
     private LocalDate dateOfBirth;
     private String gender;
     private Double heightCm;

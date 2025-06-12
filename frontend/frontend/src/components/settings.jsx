@@ -12,6 +12,7 @@ function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [preferences, setPreferences] = useState(null);
 
     
   const toggleSidebar = () => {
@@ -32,6 +33,10 @@ function Settings() {
         const profileResponse = await UserService.single();
         setProfile(profileResponse.data);
 
+        // Fetch user preferences
+        const prefRespone = await UserService.singlePreferences();
+        setPreferences(prefRespone.data);
+
       } catch (error) {
         console.error("Error fetching profile or preferences:", error);
       }
@@ -40,8 +45,32 @@ function Settings() {
     fetchData();
   }, []);
 
-  if (profile === null) {
-    return <div>Loading...</div>;  // Display loading message while waiting for profile data
+  // Patch Profile Method Defined
+  const patchProfile = async (updatedProfileData) => {
+    try {
+      await UserService.patchProfile(updatedProfileData);
+      setProfile(updatedProfileData);
+      // alert("Profile updated successfully!");
+    } catch (err) {
+      console.error("Error updating profile", err);
+      alert("Failed to update profile");
+    }
+  }
+
+  // Patch Preference Method Defined
+  const patchPreferences = async (updatedPreferecesData) => {
+    try {
+      await UserService.patchPreferences(updatedPreferecesData);
+      setPreferences(updatedPreferecesData); 
+
+    } catch (err) {
+      console.error("Error updating preferences", err);
+      alert("Failed to update preferences");
+    }
+  }
+
+  if (!profile || !preferences) {
+    return <div>Loading...</div>; 
   }
 
   return (
@@ -83,9 +112,20 @@ function Settings() {
           </nav>
 
           {/* Content of Tab */}
-        {activeTab === "profile" && <ProfileTab profile={profile} setProfile={setProfile} />}
-        {activeTab === "preferences" && <PreferencesTab />}
-        {activeTab === "notifications" && <NotificationsTab />}
+        {activeTab === "profile" && <ProfileTab 
+                                      profile={profile} 
+                                      preferences={preferences} 
+                                      patchProfile={patchProfile}
+                                      patchPreferences={patchPreferences}
+                                      />}
+        {activeTab === "preferences" && <PreferencesTab 
+                                      preferences={preferences}
+                                      patchPreferences={patchPreferences}
+                                      />}
+        {activeTab === "notifications" && <NotificationsTab 
+                                      preferences={preferences}
+                                      patchPreferences={patchPreferences}
+                                      />}
 
         </div>
       </div>
@@ -168,135 +208,118 @@ function EditableField({
   );
 }
 
-function ProfileTab({ profile, setProfile }) {
+function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
   const [email, setEmail] = useState(profile.email || "");
-  const [phone, setPhone] = useState(profile.phone || "");
+  const [phone, setPhone] = useState(profile.phoneNumber || "");
   const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth || "");
   const [gender, setGender] = useState(profile.gender || "");
   const [heightCm, setHeightCm] = useState(profile.heightCm || "");
   const [weightKg, setWeightKg] = useState(profile.weightKg || "");
-  const [locationCustomization, setLocationCustomization] = useState(profile.locationCustomization || "");
+  const [locationCustomization, setLocationCustomization] = useState(preferences.locationCustomization || "");
 
-  // Convert "yes" / "no" to boolean values
-  const [asthma, setAsthma] = useState(profile.asthma === "yes" ? true : false);
-  const [respiratoryDisease, setRespiratoryDisease] = useState(profile.respiratoryDisease === "yes" ? true : false);
-  const [heartDisease, setHeartDisease] = useState(profile.heartDisease === "yes" ? true : false);
-  const [allergies, setAllergies] = useState(profile.allergies === "yes" ? true : false);
-  const [pregnant, setPregnant] = useState(profile.pregnant === "yes" ? true : false);
-  const [smoker, setSmoker] = useState(profile.smoker === "yes" ? true : false);
+  const [asthma, setAsthma] = useState(profile.asthma || "");
+  const [respiratoryDisease, setRespiratoryDisease] = useState(profile.respiratoryDisease || "");
+  const [heartDisease, setHeartDisease] = useState(profile.heartDisease || "");
+  const [allergies, setAllergies] = useState(profile.allergies || "");
+  const [pregnant, setPregnant] = useState(profile.pregnant || "");
+  const [smoker, setSmoker] = useState(profile.smoker || "");
   const [otherConditions, setOtherConditions] = useState(profile.otherConditions || "");
 
-  // Handle Save Changes
-  const handleSave = () => {
+  // Handle profile updated
+  const handleFieldChange = (field, value) => {
+    // Convert "Yes/ No to boolean true/ false"
+    if (value === "Yes") value = true;
+    if (value === "No") value = false;
+
+    if (field === "email") setEmail(value);
+    if (field === "phone") setPhone(value);
+    if (field === "dateOfBirth") setDateOfBirth(value);
+    if (field === "gender") setGender(value);
+    if (field === "heightCm") setHeightCm(value);
+    if (field === "weightKg") setWeightKg(value);
+    if (field === "locationCustomization") setLocationCustomization(value);
+    if (field === "asthma") setAsthma(value);
+    if (field === "respiratoryDisease") setRespiratoryDisease(value);
+    if (field === "heartDisease") setHeartDisease(value);
+    if (field === "allergies") setAllergies(value);
+    if (field === "pregnant") setPregnant(value);
+    if (field === "smoker") setSmoker(value);
+    if (field === "otherConditions") setOtherConditions(value);
+
     const updatedProfile = {
-      email,
-      phone,
-      dateOfBirth,
-      gender,
-      heightCm,
-      weightKg,
-      locationCustomization,
-      asthma: asthma ? "yes" : "no",  // Convert boolean back to "yes" or "no"
-      respiratoryDisease: respiratoryDisease ? "yes" : "no",
-      heartDisease: heartDisease ? "yes" : "no",
-      allergies: allergies ? "yes" : "no",
-      pregnant: pregnant ? "yes" : "no",
-      smoker: smoker ? "yes" : "no",
-      otherConditions
+      ...profile,
+      [field]: value, 
     };
 
-    setProfile(updatedProfile);  // Update the profile in the parent state (or send to backend)
-    console.log("Profile updated:", updatedProfile);  // For now, log the updated profile
-  };
+    patchProfile(updatedProfile); 
+  }
+
+  const handlePreferencesUpdate = (field, value) => {
+    if (field === "locationCustomization") setLocationCustomization(value);
+
+    const updatedPrefereces = {
+      ...preferences,
+      [field]: value, 
+    };
+
+    patchPreferences(updatedPrefereces); 
+  }
+
+
 
   return (
     <div className="tab-content profile-tab">
       <section>
         <h2 className="section-title">Personal Info</h2>
         <ul className="settings-list">
-          <EditableField label="Email address" type="email" value={email} onSave={setEmail} />
-          <EditableField label="Phone Number" type="tel" value={phone} onSave={setPhone} />
-          <EditableField label="Date of Birth" type="date" value={dateOfBirth} onSave={setDateOfBirth} />
+          <EditableField label="Email address" type="email" value={email} onSave={(value) => handleFieldChange("email", value)} />
+          <EditableField label="Phone Number" type="tel" value={phone} onSave={(value) => handleFieldChange("phone", value)} />
+          <EditableField label="Date of Birth" type="date" value={dateOfBirth} onSave={(value) => handleFieldChange("dateOfBirth", value)} />
           <EditableField
             label="Gender"
             options={[
-              { value: "Man", label: "Man" },
-              { value: "Woman", label: "Woman" },
+              { value: "Male", label: "Male" },
+              { value: "Female", label: "Female" },
               { value: "Other", label: "Other" },
               { value: "Prefer not to say", label: "Prefer not to say" },
             ]}
             value={gender}
-            onSave={setGender}
+            onSave={(value) => handleFieldChange("gender", value)}
           />
-          <EditableField label="Height (cm)" type="number" value={heightCm} onSave={setHeightCm} />
-          <EditableField label="Weight (kg)" type="number" value={weightKg} onSave={setWeightKg} />
+          <EditableField label="Height (cm)" type="number" value={heightCm} onSave={(value) => handleFieldChange("heightCm", value)} />
+          <EditableField label="Weight (kg)" type="number" value={weightKg} onSave={(value) => handleFieldChange("weightKg", value)} />
         </ul>
       </section>
 
       <section>
         <h2 className="section-title">Health Conditions</h2>
         <ul className="settings-list">
-          <EditableField
-            label="Asthma"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={asthma ? "yes" : "no"}  // Display "yes" or "no"
-            onSave={setAsthma}
-          />
-          <EditableField
-            label="Respiratory Disease"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={respiratoryDisease ? "yes" : "no"}
-            onSave={setRespiratoryDisease}
-          />
-          <EditableField
-            label="Heart Disease"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={heartDisease ? "yes" : "no"}
-            onSave={setHeartDisease}
-          />
-          <EditableField
-            label="Allergies"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={allergies ? "yes" : "no"}
-            onSave={setAllergies}
-          />
-          <EditableField
-            label="Pregnancy"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-              { value: "not-applicable", label: "Not applicable" },
-            ]}
-            value={pregnant ? "yes" : "no"}
-            onSave={setPregnant}
-          />
-          <EditableField
-            label="Smoker"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={smoker ? "yes" : "no"}
-            onSave={setSmoker}
-          />
-          <EditableField
-            label="Other Conditions"
-            type="text"
-            value={otherConditions}
-            onSave={setOtherConditions}
-          />
+          <EditableField label="Asthma" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+          ]} value={asthma ? "Yes" : "No"} onSave={(value) => handleFieldChange("asthma", value)} />
+          <EditableField label="Respiratory Disease" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+          ]} value={respiratoryDisease ? "Yes" : "No"} onSave={(value) => handleFieldChange("respiratoryDisease", value)} />
+          <EditableField label="Heart Disease" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+          ]} value={heartDisease ? "Yes" : "No"} onSave={(value) => handleFieldChange("heartDisease", value)} />
+          <EditableField label="Allergies" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+          ]} value={allergies ? "Yes" : "No"} onSave={(value) => handleFieldChange("allergies", value)} />
+          <EditableField label="Pregnancy" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+            { value: "Not-applicable", label: "Not applicable" },
+          ]} value={pregnant ? "Yes" : "No"} onSave={(value) => handleFieldChange("pregnant", value)} />
+          <EditableField label="Smoker" options={[
+            { value: "Yes", label: "Yes" },
+            { value: "No", label: "No" },
+          ]} value={smoker ? "Yes" : "No"} onSave={(value) => handleFieldChange("smoker", value)} />
+          <EditableField label="Other Conditions" type="text" value={otherConditions} onSave={(value) => handleFieldChange("otherConditions", value)} />
         </ul>
       </section>
 
@@ -311,23 +334,35 @@ function ProfileTab({ profile, setProfile }) {
               { value: "Set location manually", label: "Set location manually" },
             ]}
             value={locationCustomization}
-            onSave={setLocationCustomization}
+            onSave={(value) => handlePreferencesUpdate("locationCustomization", value)}
           />
         </ul>
       </section>
-
-      <button className="save-profile-button" onClick={handleSave}>
-        Save Changes
-      </button>
     </div>
   );
 }
 
-  function PreferencesTab() {
-    const [displayLanguage, setDisplayLanguage] = useState("English");
-    const [showPollutionAlerts, setShowPollutionAlerts] = useState(true);
-    const [showHealthTips, setShowHealthTips] = useState(true);
-    const [useLocation, setUseLocation] = useState(true);
+  function PreferencesTab({preferences, patchPreferences}) {
+    const [displayLanguage, setDisplayLanguage] = useState(preferences.displayLanguage || "");
+    const [showPollutionAlerts, setShowPollutionAlerts] = useState(preferences.showPollutionAlerts);
+    const [showHealthTips, setShowHealthTips] = useState(preferences.showHealthTips);
+    // const [useLocation, setUseLocation] = useState(true);
+
+    const handleFieldChange = (field, value) => {
+      if (field === "showPollutionAlerts") value = !showPollutionAlerts;
+      if (field === "showHealthTips") value = !showHealthTips;
+      
+      if (field === "displayLanguage") setDisplayLanguage(value);
+      if (field === "showPollutionAlerts") setShowPollutionAlerts(value);
+      if (field === "showHealthTips") setShowHealthTips(value);
+
+      const updatedPrefereces = {
+        ...preferences,
+        [field]: value, 
+      };
+  
+      patchPreferences(updatedPrefereces);     
+    }
   
     return (
       <div className="tab-content profile-tab">
@@ -338,7 +373,7 @@ function ProfileTab({ profile, setProfile }) {
               <label>Display language</label>
               <select
                 value={displayLanguage}
-                onChange={(e) => setDisplayLanguage(e.target.value)}
+                onChange={(e) => handleFieldChange("displayLanguage", e.target.value)}
                 className="settings-select"
               >
                 <option>English</option>
@@ -356,7 +391,7 @@ function ProfileTab({ profile, setProfile }) {
                 <ToggleSwitch
                     Name="showPollutionAlerts"
                     checked={showPollutionAlerts}
-                    onChange={() => setShowPollutionAlerts(!showPollutionAlerts)}
+                    onChange={() => handleFieldChange("showPollutionAlerts", !showPollutionAlerts)}
                 />
             </li>
             <li className="settings-item">
@@ -364,31 +399,50 @@ function ProfileTab({ profile, setProfile }) {
                 <ToggleSwitch
                     Name="showHealthRecommendations"
                     checked={showHealthTips}
-                    onChange={() => setShowHealthTips(!showHealthTips)}
+                    onChange={() => handleFieldChange("showHealthTips", !showHealthTips)}
                 />
             </li>
-            <li className="settings-item">
+            {/* <li className="settings-item">
                 <label htmlFor="allowPersonalizeLocation">Allow location access for personalized data</label>
                 <ToggleSwitch
                     Name="allowPersonalizeLocation"
                     checked={useLocation}
                     onChange={() => setUseLocation(!useLocation)}
                 />
-            </li>
+            </li> */}
           </ul>
         </section>
       </div>
     );
   }
   
-  function NotificationsTab() {
-    const [emailAlerts, setEmailAlerts] = useState(true);
-    const [pushAlerts, setPushAlerts] = useState(true);
-    const [smsAlerts, setSmsAlerts] = useState(false);
+  function NotificationsTab({preferences, patchPreferences}) {
+    const [emailAlerts, setEmailAlerts] = useState(preferences.emailAlerts);
+    const [pushAlerts, setPushAlerts] = useState(preferences.pushAlerts);
+    const [smsAlerts, setSmsAlerts] = useState(preferences.smsAlerts);
   
-    const [aqiThreshold, setAqiThreshold] = useState(100);
-    const [alertFrequency, setAlertFrequency] = useState("Immediate");
+    const [aqiThreshold, setAqiThreshold] = useState(preferences.aqiThreshold ||100);
+    const [notificationFrequency, setNotificationFrequency] = useState(preferences.notificationFrequency ||"Immediate");
+    
+    const handleFieldChange = (field, value) => {
+      if (field === "emailAlerts") value = !emailAlerts;
+      if (field === "pushAlerts") value = !pushAlerts;
+      if (field === "smsAlerts") value = !smsAlerts;
+      
+      if (field === "emailAlerts") setEmailAlerts(value);
+      if (field === "pushAlerts") setPushAlerts(value);
+      if (field === "smsAlerts") setSmsAlerts(value);
+      if (field === "aqiThreshold") setAqiThreshold(value);
+      if (field === "notificationFrequency") setNotificationFrequency(value);
+
+      const updatedPrefereces = {
+        ...preferences,
+        [field]: value, 
+      };
   
+      patchPreferences(updatedPrefereces);     
+    }
+
     return (
       <div className="tab-content profile-tab">
         <section>
@@ -399,7 +453,7 @@ function ProfileTab({ profile, setProfile }) {
                 <ToggleSwitch 
                     Name="emailAlerts"
                     checked={emailAlerts}
-                    onChange={() => setEmailAlerts(!emailAlerts)}
+                    onChange={() => handleFieldChange("emailAlerts",!emailAlerts)}
                 />
             </li>
             <li className="settings-item">
@@ -407,7 +461,7 @@ function ProfileTab({ profile, setProfile }) {
                 <ToggleSwitch 
                     Name="pushNoti"
                     checked={pushAlerts}
-                    onChange={() => setPushAlerts(!pushAlerts)}
+                    onChange={() => handleFieldChange("pushAlerts",!pushAlerts)}
                 />
             </li>
             <li className="settings-item">
@@ -415,7 +469,7 @@ function ProfileTab({ profile, setProfile }) {
                 <ToggleSwitch 
                     Name="SMSAlerts"
                     checked={smsAlerts}
-                    onChange={() => setSmsAlerts(!smsAlerts)}
+                    onChange={() => handleFieldChange("smsAlerts",!smsAlerts)}
                 />
             </li>
           </ul>
@@ -434,7 +488,7 @@ function ProfileTab({ profile, setProfile }) {
                 min={0}
                 max={500}
                 value={aqiThreshold}
-                onChange={(e) => setAqiThreshold(Number(e.target.value))}
+                onChange={(e) => handleFieldChange("aqiThreshold", e.target.value)}
                 className="settings-input"
                 style={{ width: "25%" }}
               />
@@ -445,8 +499,8 @@ function ProfileTab({ profile, setProfile }) {
               </label>
               <select
                 id="alert-frequency"
-                value={alertFrequency}
-                onChange={(e) => setAlertFrequency(e.target.value)}
+                value={notificationFrequency}
+                onChange={(e) => handleFieldChange("notificationFrequency", e.target.value)}
                 className="settings-select"
                 style={{ width: "25%" }}
               >

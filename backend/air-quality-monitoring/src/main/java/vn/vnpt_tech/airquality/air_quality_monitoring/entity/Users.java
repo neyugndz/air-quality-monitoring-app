@@ -31,6 +31,7 @@ public class Users implements UserDetails {
     private String role = "USER";
     @Builder.Default
     private boolean enabled = false;
+    private String phoneNumber;
     private String verificationCode;
     private String resetCode;
 

@@ -26,6 +26,7 @@
                 Users user = optionalUser.get();
                 user.setEmail(userDTO.getEmail());
                 user.setName(userDTO.getName());
+                user.setPhoneNumber(userDTO.getPhoneNumber());
                 user.setDateOfBirth(userDTO.getDateOfBirth());
                 user.setGender(userDTO.getGender());
                 user.setHeightCm(userDTO.getHeightCm());
@@ -86,6 +87,7 @@
                 Users user = optionalUser.get();
                 if (userDTO.getEmail() != null) user.setEmail(userDTO.getEmail());
                 if (userDTO.getName() != null) user.setName(userDTO.getName());
+                if (userDTO.getPhoneNumber() != null) user.setPhoneNumber(userDTO.getPhoneNumber());
                 if (userDTO.getDateOfBirth() != null) user.setDateOfBirth(userDTO.getDateOfBirth());
                 if (userDTO.getGender() != null) user.setGender(userDTO.getGender());
                 if (userDTO.getHeightCm() != null) user.setHeightCm(userDTO.getHeightCm());

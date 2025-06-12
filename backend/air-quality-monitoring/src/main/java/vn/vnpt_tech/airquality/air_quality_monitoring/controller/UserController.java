@@ -9,6 +9,7 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.dto.UserDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.UserPreferencesDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.UserPreferences;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.UserPreferencesRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.UserRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.service.UserService;
 
@@ -24,18 +25,23 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserPreferencesRepository userPreferencesRepository;
+
     /**
      * Update the entire user profile
      * This method will update all fields of the user profile.
-     * @param userId The ID of the user to update
+     * @param userPrincipal The authenticated user
      * @param userDTO Data transfer object containing user details to be updated
      * @return ResponseEntity with the updated user object, or error message if any exception occurs
      */
-
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUserProfile(@PathVariable Long userId, @RequestBody UserDTO userDTO) {
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateUserProfile(@AuthenticationPrincipal Users userPrincipal, @RequestBody UserDTO userDTO) {
         try {
-            Users updatedUser = userService.updateUserProfile(userId, userDTO);
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+            Users updatedUser = userService.updateUserProfile(userPrincipal.getId(), userDTO);
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error updating user profile: " + e.getMessage());
@@ -45,32 +51,37 @@ public class UserController {
     /**
      * Update user preferences completely
      * This method updates all preferences (e.g., language, notification settings).
-     * @param userId The ID of the user whose preferences are to be updated
+     * @param userPrincipal The authenticated user
      * @param preferencesDTO Data transfer object containing preferences to be updated
      * @return ResponseEntity with the updated preferences object, or error message if any exception occurs
      */
-    @PutMapping("/{userId}/preferences")
-    public ResponseEntity<?> updateUserPreferences(@PathVariable Long userId, @RequestBody UserPreferencesDTO preferencesDTO) {
+    @PutMapping("/preferences")
+    public ResponseEntity<?> updateUserPreferences(@AuthenticationPrincipal Users userPrincipal, @RequestBody UserPreferencesDTO preferencesDTO) {
         try {
-            UserPreferences updatedPreferences = userService.updateUserPreferences(userId, preferencesDTO);
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+            UserPreferences updatedPreferences = userService.updateUserPreferences(userPrincipal.getId(), preferencesDTO);
             return ResponseEntity.ok(updatedPreferences);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error updating user preferences: " + e.getMessage());
         }
     }
 
-
     /**
      * Partially update the user profile
      * This method allows for partial updates. Only the fields provided in the userDTO will be updated.
-     * @param userId The ID of the user to partially update
+     * @param userPrincipal The authenticated user
      * @param userDTO Data transfer object containing fields to update
      * @return ResponseEntity with the updated user object, or error message if any exception occurs
      */
-    @PatchMapping("/{userId}")
-    public ResponseEntity<?> patchUserProfile(@PathVariable Long userId, @RequestBody UserDTO userDTO) {
+    @PatchMapping("/profile")
+    public ResponseEntity<?> patchUserProfile(@AuthenticationPrincipal Users userPrincipal, @RequestBody UserDTO userDTO) {
         try {
-            Users updatedUser = userService.patchUserProfile(userId, userDTO);
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+            Users updatedUser = userService.patchUserProfile(userPrincipal.getId(), userDTO);
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error patching user profile: " + e.getMessage());
@@ -80,20 +91,22 @@ public class UserController {
     /**
      * Partially update user preferences
      * This method allows for partial updates to the user's preferences. Only the fields provided in the preferencesDTO will be updated.
-     * @param userId The ID of the user whose preferences are to be updated
+     * @param userPrincipal The authenticated user
      * @param preferencesDTO Data transfer object containing preferences to update
      * @return ResponseEntity with the updated preferences object, or error message if any exception occurs
      */
-    @PatchMapping("/{userId}/preferences")
-    public ResponseEntity<?> patchUserPreferences(@PathVariable Long userId, @RequestBody UserPreferencesDTO preferencesDTO) {
+    @PatchMapping("/preferences")
+    public ResponseEntity<?> patchUserPreferences(@AuthenticationPrincipal Users userPrincipal, @RequestBody UserPreferencesDTO preferencesDTO) {
         try {
-            UserPreferences updatedPreferences = userService.patchUserPreferences(userId, preferencesDTO);
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+            UserPreferences updatedPreferences = userService.patchUserPreferences(userPrincipal.getId(), preferencesDTO);
             return ResponseEntity.ok(updatedPreferences);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error patching user preferences: " + e.getMessage());
         }
     }
-
     /**
      * Get the User Information for profile section
      * @param userId ID of the required user
@@ -120,12 +133,49 @@ public class UserController {
         }
     }
 
+    /**
+     * Get the Information of User Preferences based on the Token of the Users
+     * @param userPrincipal
+     * @return
+     */
+    @GetMapping("/preferences")
+    public ResponseEntity<UserPreferencesDTO> getUserPreferencesDTO(@AuthenticationPrincipal Users userPrincipal) {
+        try {
+            // Retrieve the user preferences based on the authenticated user
+            Optional<UserPreferences> userPreferencesOpt = userPreferencesRepository.findByUsers(userPrincipal);
+
+            if (userPreferencesOpt.isPresent()) {
+                UserPreferences userPreferences = userPreferencesOpt.get();
+                UserPreferencesDTO preferencesDTO = new UserPreferencesDTO(
+                        userPreferences.getLocationCustomization(),
+                        userPreferences.getDisplayLanguage(),
+                        userPreferences.getShowPollutionAlerts(),
+                        userPreferences.getShowHealthTips(),
+                        userPreferences.getUseLocation(),
+                        userPreferences.getEmailAlerts(),
+                        userPreferences.getPushAlerts(),
+                        userPreferences.getSmsAlerts(),
+                        userPreferences.getAqiThreshold(),
+                        userPreferences.getNotificationFrequency()
+                );
+                return ResponseEntity.ok(preferencesDTO);
+            } else {
+                // If no preferences are found for the user, return 404 or an empty response
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
     private UserDTO getUserDTO(Optional<Users> optionalUsers) {
         Users user = optionalUsers.get();
 
-        UserDTO userDTO = new UserDTO(
+        return new UserDTO(
                 user.getEmail(),
                 user.getName(),
+                user.getPhoneNumber(),
                 user.getDateOfBirth(),
                 user.getGender(),
                 user.getHeightCm(),
@@ -138,7 +188,6 @@ public class UserController {
                 user.getSmoker(),
                 user.getOtherConditions()
         );
-        return userDTO;
     }
 
 }
