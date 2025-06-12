@@ -15,10 +15,7 @@ public class UserDTO {
     private String email;
     private String name;
     private String phoneNumber;
-    private LocalDate dateOfBirth;
     private String gender;
-    private Double heightCm;
-    private Double weightKg;
     private Boolean asthma;
     private Boolean respiratoryDisease;
     private Boolean heartDisease;

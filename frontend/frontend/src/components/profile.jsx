@@ -90,20 +90,8 @@ function Profile() {
                   <span className="settings-value">{profile.phoneNumber || "Not set"}</span>
                 </li>
                 <li className="settings-item">
-                  <label>Date of Birth</label>
-                  <span className="settings-value">{profile.dateOfBirth || "Not provided"}</span>
-                </li>
-                <li className="settings-item">
                   <label>Gender</label>
                   <span className="settings-value">{profile.gender || "Not set"}</span>
-                </li>
-                <li className="settings-item">
-                  <label>Height (cm)</label>
-                  <span className="settings-value">{profile.heightCm || "Not provided"}</span>
-                </li>
-                <li className="settings-item">
-                  <label>Weight (kg)</label>
-                  <span className="settings-value">{profile.weightKg || "Not provided"}</span>
                 </li>
                 <li className="settings-item">
                   <label>Location customization</label>

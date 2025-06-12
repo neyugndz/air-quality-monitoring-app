@@ -211,10 +211,7 @@ function EditableField({
 function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
   const [email, setEmail] = useState(profile.email || "");
   const [phone, setPhone] = useState(profile.phoneNumber || "");
-  const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth || "");
   const [gender, setGender] = useState(profile.gender || "");
-  const [heightCm, setHeightCm] = useState(profile.heightCm || "");
-  const [weightKg, setWeightKg] = useState(profile.weightKg || "");
   const [locationCustomization, setLocationCustomization] = useState(preferences.locationCustomization || "");
 
   const [asthma, setAsthma] = useState(profile.asthma || "");
@@ -232,11 +229,7 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
     if (value === "No") value = false;
 
     if (field === "email") setEmail(value);
-    if (field === "phone") setPhone(value);
-    if (field === "dateOfBirth") setDateOfBirth(value);
     if (field === "gender") setGender(value);
-    if (field === "heightCm") setHeightCm(value);
-    if (field === "weightKg") setWeightKg(value);
     if (field === "locationCustomization") setLocationCustomization(value);
     if (field === "asthma") setAsthma(value);
     if (field === "respiratoryDisease") setRespiratoryDisease(value);
@@ -274,7 +267,6 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
         <ul className="settings-list">
           <EditableField label="Email address" type="email" value={email} onSave={(value) => handleFieldChange("email", value)} />
           <EditableField label="Phone Number" type="tel" value={phone} onSave={(value) => handleFieldChange("phone", value)} />
-          <EditableField label="Date of Birth" type="date" value={dateOfBirth} onSave={(value) => handleFieldChange("dateOfBirth", value)} />
           <EditableField
             label="Gender"
             options={[
@@ -286,8 +278,6 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
             value={gender}
             onSave={(value) => handleFieldChange("gender", value)}
           />
-          <EditableField label="Height (cm)" type="number" value={heightCm} onSave={(value) => handleFieldChange("heightCm", value)} />
-          <EditableField label="Weight (kg)" type="number" value={weightKg} onSave={(value) => handleFieldChange("weightKg", value)} />
         </ul>
       </section>
 

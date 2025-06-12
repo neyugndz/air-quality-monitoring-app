@@ -158,7 +158,7 @@ function Dashboard() {
     if (aqi <= 50) {
       return { category: 'Good', backgroundColor: '#00e400', icon: '😊', advice: 'Air quality is satisfactory. You can go outside.' };
     } else if (aqi <= 100) {
-      return { category: 'Average', backgroundColor: '#ffff00', icon: '😐', advice: 'Moderate air quality. Sensitive groups should limit outdoor activities.' };
+      return { category: 'Moderate', backgroundColor: '#ffff00', icon: '😐', advice: 'Moderate air quality. Sensitive groups should limit outdoor activities.' };
     } else if (aqi <= 150) {
       return { category: 'Poor', backgroundColor: '#ff7e00', icon: '😷', advice: 'Air quality is unhealthy for sensitive groups. Limit outdoor exposure.' };
     } else if (aqi <= 200) {

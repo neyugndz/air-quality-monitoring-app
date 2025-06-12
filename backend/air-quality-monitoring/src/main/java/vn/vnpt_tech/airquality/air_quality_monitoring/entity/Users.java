@@ -36,10 +36,7 @@ public class Users implements UserDetails {
     private String resetCode;
 
     // Health info
-    private LocalDate dateOfBirth;
     private String gender;
-    private Double heightCm;
-    private Double weightKg;
     private Boolean asthma;
     private Boolean respiratoryDisease;
     private Boolean heartDisease;

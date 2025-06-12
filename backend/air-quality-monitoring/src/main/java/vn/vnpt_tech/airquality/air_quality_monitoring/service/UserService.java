@@ -27,10 +27,7 @@
                 user.setEmail(userDTO.getEmail());
                 user.setName(userDTO.getName());
                 user.setPhoneNumber(userDTO.getPhoneNumber());
-                user.setDateOfBirth(userDTO.getDateOfBirth());
                 user.setGender(userDTO.getGender());
-                user.setHeightCm(userDTO.getHeightCm());
-                user.setWeightKg(userDTO.getWeightKg());
                 user.setAsthma(userDTO.getAsthma());
                 user.setRespiratoryDisease(userDTO.getRespiratoryDisease());
                 user.setHeartDisease(userDTO.getHeartDisease());
@@ -88,10 +85,7 @@
                 if (userDTO.getEmail() != null) user.setEmail(userDTO.getEmail());
                 if (userDTO.getName() != null) user.setName(userDTO.getName());
                 if (userDTO.getPhoneNumber() != null) user.setPhoneNumber(userDTO.getPhoneNumber());
-                if (userDTO.getDateOfBirth() != null) user.setDateOfBirth(userDTO.getDateOfBirth());
                 if (userDTO.getGender() != null) user.setGender(userDTO.getGender());
-                if (userDTO.getHeightCm() != null) user.setHeightCm(userDTO.getHeightCm());
-                if (userDTO.getWeightKg() != null) user.setWeightKg(userDTO.getWeightKg());
                 if (userDTO.getAsthma() != null) user.setAsthma(userDTO.getAsthma());
                 if (userDTO.getRespiratoryDisease() != null) user.setRespiratoryDisease(userDTO.getRespiratoryDisease());
                 if (userDTO.getHeartDisease() != null) user.setHeartDisease(userDTO.getHeartDisease());
