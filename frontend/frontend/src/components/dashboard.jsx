@@ -83,9 +83,19 @@ function Dashboard() {
     DeviceService.index()
       .then(res => {
         setDevices(res.data);
-        if(res.data.length > 0) {
-          setSelectedDeviceId(res.data[0]?.deviceId);
-        }
+
+        DeviceService.nearestStation()
+          .then((res) => {
+            setSelectedDeviceId(res.data.deviceId);
+            setDeviceData(res.data);
+          })
+          .catch((err) => {
+            console.error('Error fetching nearest station', err);
+          });
+
+        // if(res.data.length > 0) {
+        //   setSelectedDeviceId(res.data[0]?.deviceId);
+        // }
       })
       .catch(err => console.error("Error loading devices ", err));
   }, []);
@@ -476,7 +486,7 @@ function Dashboard() {
                   backgroundColor: '#ffff00', margin: '0 auto', fontSize: 24,
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>😐</div>
-                <span style={{ fontSize: 13, marginTop: 4, display: 'block' }}>Average</span>
+                <span style={{ fontSize: 13, marginTop: 4, display: 'block' }}>Moderate</span>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{

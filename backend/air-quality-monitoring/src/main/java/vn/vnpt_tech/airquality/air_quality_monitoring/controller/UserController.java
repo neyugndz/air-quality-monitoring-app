@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import vn.vnpt_tech.airquality.air_quality_monitoring.dto.LocationDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.UserDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.UserPreferencesDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.UserPreferences;
@@ -186,5 +187,58 @@ public class UserController {
                 user.getOtherConditions()
         );
     }
+
+    /**
+     * Update the location for user info
+     * @param userPrincipal Authorize user to get token
+     * @param locationDTO get the body of lat and lon
+     * @return Confirmation of Successfully updated
+     */
+    @PutMapping("/updateLocation")
+    public ResponseEntity<?> updateLocation(@AuthenticationPrincipal Users userPrincipal, @RequestBody LocationDTO locationDTO) {
+        try {
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+
+            userPrincipal.setLatitude(locationDTO.getLatitude());
+            userPrincipal.setLongitude(locationDTO.getLongitude());
+            userRepository.save(userPrincipal);
+
+            return ResponseEntity.ok("Location updated successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error updating location: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get the user's location (latitude and longitude)
+     * @param userPrincipal The authenticated user
+     * @return ResponseEntity with the user's location (latitude and longitude)
+     */
+    @GetMapping("/location")
+    public ResponseEntity<?> getUserLocation(@AuthenticationPrincipal Users userPrincipal) {
+        try {
+            // Check if the user is authenticated
+            if (userPrincipal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+            }
+
+            Double latitude = userPrincipal.getLatitude();
+            Double longitude = userPrincipal.getLongitude();
+
+            if (latitude == null || longitude == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Location not set.");
+            }
+
+            // Return the location in a DTO format
+            LocationDTO locationDTO = new LocationDTO(latitude, longitude);
+            return ResponseEntity.ok(locationDTO);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error fetching user location: " + e.getMessage());
+        }
+    }
+
 
 }

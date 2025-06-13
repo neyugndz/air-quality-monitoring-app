@@ -1,6 +1,8 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.controller;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,6 +27,9 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/telemetry")
 public class TelemetryController {
+
+    private final Logger teleLogger = LoggerFactory.getLogger(TelemetryController.class);
+
     @Autowired
     private TelemetryRepository telemetryRepository;
 

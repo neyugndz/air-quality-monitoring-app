@@ -3,7 +3,9 @@ import { get } from '../config/api';
 export const DeviceService = {
   index: () => get('/devices'), 
   single: (id) => get(`/devices/${id}/with-latest-telemetry`),
-  allAqi: () => get(`devices/location-aqi`)
+  allAqi: () => get(`devices/location-aqi`),
+  nearestStation: () => get(`/devices/nearest-station`)
+
 //   single: (id) => get(`/devices/${id}`),
 //   create: (params) => post('/devices', params),
 //   update: (id, params) => put(`/devices/${id}`, params), 

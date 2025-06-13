@@ -45,6 +45,9 @@ public class Users implements UserDetails {
     private Boolean smoker;
     private String otherConditions;
 
+    private Double latitude;
+    private Double longitude;
+
     @OneToMany(mappedBy = "users")
     @JsonIgnore
     private List<UserPreferences> userPreferences;

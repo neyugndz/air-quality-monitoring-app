@@ -114,6 +114,7 @@ function Settings() {
           {/* Content of Tab */}
         {activeTab === "profile" && <ProfileTab 
                                       profile={profile} 
+                                      setProfile={setProfile}
                                       preferences={preferences} 
                                       patchProfile={patchProfile}
                                       patchPreferences={patchPreferences}
@@ -135,84 +136,12 @@ function Settings() {
 }
 
 
-function EditableField({ 
-  label, 
-  type = "text", 
-  options = null, 
-  value, 
-  onSave 
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempValue, setTempValue] = useState(value || "");
-
-  const startEdit = () => {
-    setTempValue(value || "");
-    setIsEditing(true);
-  };
-
-  const cancelEdit = () => {
-    setTempValue(value || "");
-    setIsEditing(false);
-  };
-
-  const saveEdit = () => {
-    onSave(tempValue);
-    setIsEditing(false);
-  };
-
-  return (
-    <li className="settings-item">
-      <label>{label}</label>
-      {isEditing ? (
-        <>
-          {options ? (
-            <select
-              className="settings-select"
-              value={tempValue}
-              onChange={e => setTempValue(e.target.value)}
-            >
-              <option value="">Select</option>
-              {options.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type={type}
-              className="settings-input"
-              value={tempValue}
-              onChange={e => setTempValue(e.target.value)}
-              min={type === "number" ? 0 : undefined}
-              max={type === "number" ? 120 : undefined}
-              placeholder={`Enter ${label.toLowerCase()}`}
-            />
-          )}
-          <button className="btn-save" onClick={saveEdit}>Save</button>
-          <button className="btn-cancel" onClick={cancelEdit}>Cancel</button>
-        </>
-      ) : (
-        <>
-          <span className="settings-value">{value || (type === "password" ? "********" : "Not provided")}</span>
-          <FontAwesomeIcon
-            icon={faPencil}
-            className="edit-icon"
-            role="button"
-            tabIndex={0}
-            aria-label={`Edit ${label}`}
-            onClick={startEdit}
-            onKeyDown={e => { if (e.key === "Enter") startEdit(); }}
-          />
-        </>
-      )}
-    </li>
-  );
-}
-
-function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
+function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPreferences }) {
   const [email, setEmail] = useState(profile.email || "");
   const [phone, setPhone] = useState(profile.phoneNumber || "");
   const [gender, setGender] = useState(profile.gender || "");
   const [locationCustomization, setLocationCustomization] = useState(preferences.locationCustomization || "");
+  const [userLocation, setUserLocation] =  useState({lat: profile.latitude, lon: profile.longitude });
 
   const [asthma, setAsthma] = useState(profile.asthma || "");
   const [respiratoryDisease, setRespiratoryDisease] = useState(profile.respiratoryDisease || "");
@@ -248,7 +177,10 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
   }
 
   const handlePreferencesUpdate = (field, value) => {
-    if (field === "locationCustomization") setLocationCustomization(value);
+    if (field === "locationCustomization") {
+      setLocationCustomization(value);
+      handleLocationChange(value);
+    }
 
     const updatedPrefereces = {
       ...preferences,
@@ -257,6 +189,63 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
 
     patchPreferences(updatedPrefereces); 
   }
+
+  // Handle location customization change
+  const handleLocationChange = (value) => {
+    setLocationCustomization(value);
+
+    if (value === "Use approximate location (based on IP)") {
+        fetchLocationByIP();
+    } else if (value === "Use exact location (GPS)") {
+        fetchLocationByGPS();
+    }
+  };
+
+  // Fetch location by IP (using ip-api)
+  const fetchLocationByIP = async () => {
+      try {
+          const response = await fetch('http://ip-api.com/json');
+          const data = await response.json();
+          setUserLocation({ lat: data.lat, lon: data.lon });
+          updateUserLocation(data.lat, data.lon);
+          console.log(data);
+      } catch (error) {
+          console.error('Error fetching location by IP', error);
+      }
+    };
+
+    // Fetch location by GPS (using browser's geolocation API)
+    const fetchLocationByGPS = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                setUserLocation({ lat: latitude, lon: longitude });
+                updateUserLocation(latitude, longitude);
+                console.log(latitude, longitude);
+            }, (error) => {
+                console.error('Error fetching GPS location', error);
+            });
+        } else {
+            console.log('Geolocation is not supported by this browser.');
+        }
+    };
+
+    // Update the user's location on the backend
+    const updateUserLocation = async (lat, lon) => {
+      try {
+          const locationData = { latitude: lat, longitude: lon };
+          await UserService.putLocation(locationData); 
+          setProfile({ ...profile, latitude: lat, longitude: lon });
+      } catch (error) {
+          console.error('Error updating user location', error);
+      }
+    };
+
+    useEffect(() => {
+      if (profile && profile.latitude && profile.longitude) {
+          setUserLocation({ lat: profile.latitude, lon: profile.longitude });
+      }
+    }, [profile]);
 
 
 
@@ -321,7 +310,6 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
             options={[
               { value: "Use approximate location (based on IP)", label: "Use approximate location (based on IP)" },
               { value: "Use exact location (GPS)", label: "Use exact location (GPS)" },
-              { value: "Set location manually", label: "Set location manually" },
             ]}
             value={locationCustomization}
             onSave={(value) => handlePreferencesUpdate("locationCustomization", value)}
@@ -505,5 +493,89 @@ function ProfileTab({ profile, preferences, patchProfile, patchPreferences }) {
     );
   }
 
+
+function EditableField({
+  label,
+  type = "text",
+  options = null,
+  value,
+  onSave,
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value || "");
+
+  const startEdit = () => {
+    setTempValue(value || "");
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setTempValue(value || "");
+    setIsEditing(false);
+  };
+
+  const saveEdit = () => {
+    onSave(tempValue);
+    setIsEditing(false);
+  };
+
+  return (
+    <li className="settings-item">
+      <label>{label}</label>
+      {isEditing ? (
+        <>
+          {options ? (
+            // Handle select option
+            <select
+              className="settings-select"
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+            >
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            // Handle input field (text, number, etc.)
+            <input
+              type={type}
+              className="settings-input"
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              min={type === "number" ? 0 : undefined}
+              max={type === "number" ? 120 : undefined}
+              placeholder={`Enter ${label.toLowerCase()}`}
+            />
+          )}
+          <button className="btn-save" onClick={saveEdit}>
+            Save
+          </button>
+          <button className="btn-cancel" onClick={cancelEdit}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="settings-value">
+            {value || (type === "password" ? "********" : "Not provided")}
+          </span>
+          <FontAwesomeIcon
+            icon={faPencil}
+            className="edit-icon"
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit ${label}`}
+            onClick={startEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") startEdit();
+            }}
+          />
+        </>
+      )}
+    </li>
+  );
+}
   
 export default Settings;

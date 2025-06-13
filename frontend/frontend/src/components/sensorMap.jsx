@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import { DeviceService } from '../service/deviceService';
 import { ThreeDots } from 'react-loader-spinner';
+import { UserService } from '../service/userService';
 
 // Fix marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -18,7 +19,7 @@ const getAqiCategory = (aqi) => {
   if (aqi <= 50) {
     return { category: 'Good', backgroundColor: '#00e400'};
   } else if (aqi <= 100) {
-    return { category: 'Average', backgroundColor: '#ffff00'};
+    return { category: 'Moderate', backgroundColor: '#ffff00'};
   } else if (aqi <= 150) {
     return { category: 'Poor', backgroundColor: '#ff7e00'};
   } else if (aqi <= 200) {
@@ -33,6 +34,7 @@ const getAqiCategory = (aqi) => {
 function SensorMap() {
   const [stationData, setStationData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState(null); 
 
   useEffect(() => {
     DeviceService.allAqi()
@@ -45,7 +47,20 @@ function SensorMap() {
         setStationData(null);
         setLoading(false);
       });
+
+    // Fetch user location
+    UserService.getLocation()
+      .then(response => {
+        const { latitude, longitude } = response.data;  
+        setUserLocation({ lat: latitude, lon: longitude });
+      })
+      .catch(err => {
+        console.error('Error fetching user location', err);
+      });
   },[]);  
+
+
+
 
   // Function to create the custom marker icon
   const createCustomIcon = (aqi) => {
@@ -75,6 +90,31 @@ function SensorMap() {
       popupAnchor: [0, -35] // Position the popup above the marker
     });
     return icon;
+  };
+
+
+  const createUserLocationIcon = () => {
+    return L.divIcon({
+      className: 'leaflet-div-icon',
+      html: `<div style="background-color: blue; 
+                        border-radius: 50%; 
+                        width: 12px; 
+                        height: 12px; 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        color: white; 
+                        font-weight: bold; 
+                        font-size: 10px; 
+                        border: 1px solid white;
+                        margin: 0; 
+                        padding: 0; 
+                        box-sizing: border-box;">
+              </div>`,
+      iconSize: [0, 0],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -20]
+    });
   };
 
   return (
@@ -114,6 +154,19 @@ function SensorMap() {
               </Marker>
             );
           })}
+              {/* Add user's location on the map */}
+              {userLocation && (
+                <Marker 
+                  position={[userLocation.lat, userLocation.lon]} 
+                  icon={createUserLocationIcon()}  
+                >
+                  <Popup>
+                    <b>Your Location</b>
+                  </Popup>
+                </Marker>
+              )}
+
+
         </MapContainer>
       )}
     </div>
