@@ -6,8 +6,9 @@ import { UserService } from "../service/userService.js";
 function Profile() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [profile, setProfile] = useState(null); // State for user profile
+  const [profile, setProfile] = useState(null); 
   const [preferences, setPreferences] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
@@ -24,6 +25,8 @@ function Profile() {
         setPreferences(preferecesRep.data);
       } catch (error) {
         console.error("Error fetching profile:", error);
+      } finally {
+        setLoading(false); // Set loading state to false when data fetch is completed
       }
     };
 
@@ -36,8 +39,8 @@ function Profile() {
     return val ? "Yes" : "No";
   };
 
-  if (!profile || !preferences) {
-    return <div>Loading...</div>; 
+  if (loading) {
+    return <div>Loading profile data...</div>;
   }
 
   return (
@@ -95,7 +98,7 @@ function Profile() {
                 </li>
                 <li className="settings-item">
                   <label>Location customization</label>
-                  <span className="settings-value">{preferences.locationCustomization || "Not set"}</span>
+                  <span className="settings-value">{preferences?.locationCustomization || "Not set"}</span>
                 </li>
               </ul>
             </section>
@@ -105,19 +108,19 @@ function Profile() {
               <ul className="settings-list no-pointer">
                 <li className="settings-item">
                   <label>Asthma</label>
-                  <span className="settings-value">{boolToYesNo(profile.asthma)}</span>
+                  <span className="settings-value">{boolToYesNo(profile.asthma )}</span>
                 </li>
                 <li className="settings-item">
                   <label>Respiratory Disease</label>
-                  <span className="settings-value">{boolToYesNo(profile.respiratoryDisease)}</span>
+                  <span className="settings-value">{boolToYesNo(profile.respiratoryDisease) }</span>
                 </li>
                 <li className="settings-item">
                   <label>Heart Disease</label>
-                  <span className="settings-value">{boolToYesNo(profile.heartDisease)}</span>
+                  <span className="settings-value">{boolToYesNo(profile.heartDisease) }</span>
                 </li>
                 <li className="settings-item">
                   <label>Allergies</label>
-                  <span className="settings-value">{boolToYesNo(profile.allergies)}</span>
+                  <span className="settings-value">{boolToYesNo(profile.allergies) }</span>
                 </li>
                 <li className="settings-item">
                   <label>Pregnancy</label>

@@ -25,24 +25,30 @@ function Settings() {
     { key: "notifications", label: "Notifications" },
   ]; 
 
-  // Fetch profile and preferences data from the API
+  /**
+   * Fetch profile and preferences data from the API
+   * */ 
+    useEffect(() => {
+      UserService.single()
+        .then(res => {
+          setProfile(res.data);
+          console.log(res.data);
+        })
+        .catch((err) => {
+          console.error("Error fetching profile", err);
+        })
+    }, [])
+    
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch user profile
-        const profileResponse = await UserService.single();
-        setProfile(profileResponse.data);
-
-        // Fetch user preferences
-        const prefRespone = await UserService.singlePreferences();
-        setPreferences(prefRespone.data);
-
-      } catch (error) {
-        console.error("Error fetching profile or preferences:", error);
-      }
-    };
-
-    fetchData();
+    UserService.singlePreferences()
+      .then(res => {
+        setPreferences(res.data);
+        console.log(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching preferences", err);
+      });
   }, []);
 
   // Patch Profile Method Defined
@@ -67,10 +73,6 @@ function Settings() {
       console.error("Error updating preferences", err);
       alert("Failed to update preferences");
     }
-  }
-
-  if (!profile || !preferences) {
-    return <div>Loading...</div>; 
   }
 
   return (
@@ -137,19 +139,41 @@ function Settings() {
 
 
 function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPreferences }) {
-  const [email, setEmail] = useState(profile.email || "");
-  const [phone, setPhone] = useState(profile.phoneNumber || "");
-  const [gender, setGender] = useState(profile.gender || "");
-  const [locationCustomization, setLocationCustomization] = useState(preferences.locationCustomization || "");
-  const [userLocation, setUserLocation] =  useState({lat: profile.latitude, lon: profile.longitude });
+  const [email, setEmail] = useState(profile?.email || "");
+  const [phone, setPhone] = useState(profile?.phoneNumber || "");
+  const [gender, setGender] = useState(profile?.gender || "");
+  const [locationCustomization, setLocationCustomization] = useState(preferences?.locationCustomization || "");
+  const [userLocation, setUserLocation] =  useState({lat: profile?.latitude, lon: profile?.longitude });
 
-  const [asthma, setAsthma] = useState(profile.asthma || "");
-  const [respiratoryDisease, setRespiratoryDisease] = useState(profile.respiratoryDisease || "");
-  const [heartDisease, setHeartDisease] = useState(profile.heartDisease || "");
-  const [allergies, setAllergies] = useState(profile.allergies || "");
-  const [pregnant, setPregnant] = useState(profile.pregnant || "");
-  const [smoker, setSmoker] = useState(profile.smoker || "");
-  const [otherConditions, setOtherConditions] = useState(profile.otherConditions || "");
+  const [asthma, setAsthma] = useState(profile?.asthma || "");
+  const [respiratoryDisease, setRespiratoryDisease] = useState(profile?.respiratoryDisease || "");
+  const [heartDisease, setHeartDisease] = useState(profile?.heartDisease || "");
+  const [allergies, setAllergies] = useState(profile?.allergies || "");
+  const [pregnant, setPregnant] = useState(profile?.pregnant || "");
+  const [smoker, setSmoker] = useState(profile?.smoker || "");
+  const [otherConditions, setOtherConditions] = useState(profile?.otherConditions || "");
+
+  /**
+   * Syncs the component state with the profile and preferences data.
+   */
+  useEffect(() => {
+    if (profile) {
+      setEmail(profile.email || "");
+      setPhone(profile.phoneNumber || "");
+      setGender(profile.gender || "");
+      setLocationCustomization(preferences?.locationCustomization || "");
+      setUserLocation({ lat: profile.latitude, lon: profile.longitude });
+
+      setAsthma(profile.asthma || "");
+      setRespiratoryDisease(profile.respiratoryDisease || "");
+      setHeartDisease(profile.heartDisease || "");
+      setAllergies(profile.allergies || "");
+      setPregnant(profile.pregnant || "");
+      setSmoker(profile.smoker || "");
+      setOtherConditions(profile.otherConditions || "");
+    }
+  }, [profile, preferences]);
+
 
   // Handle profile updated
   const handleFieldChange = (field, value) => {
@@ -247,14 +271,15 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
       }
     }, [profile]);
 
-
-
   return (
     <div className="tab-content profile-tab">
       <section>
         <h2 className="section-title">Personal Info</h2>
         <ul className="settings-list">
-          <EditableField label="Email address" type="email" value={email} onSave={(value) => handleFieldChange("email", value)} />
+          <li className="settings-item">
+            <label>Email address</label>
+            <span className="settings-value">{profile?.email ? profile.email : "Not provided"}</span>
+          </li>
           <EditableField label="Phone Number" type="tel" value={phone} onSave={(value) => handleFieldChange("phone", value)} />
           <EditableField
             label="Gender"
@@ -321,9 +346,9 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
 }
 
   function PreferencesTab({preferences, patchPreferences}) {
-    const [displayLanguage, setDisplayLanguage] = useState(preferences.displayLanguage || "");
-    const [showPollutionAlerts, setShowPollutionAlerts] = useState(preferences.showPollutionAlerts);
-    const [showHealthTips, setShowHealthTips] = useState(preferences.showHealthTips);
+    const [displayLanguage, setDisplayLanguage] = useState(preferences?.displayLanguage || "");
+    const [showPollutionAlerts, setShowPollutionAlerts] = useState(preferences?.showPollutionAlerts);
+    const [showHealthTips, setShowHealthTips] = useState(preferences?.showHealthTips);
     // const [useLocation, setUseLocation] = useState(true);
 
     const handleFieldChange = (field, value) => {
@@ -341,6 +366,8 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
   
       patchPreferences(updatedPrefereces);     
     }
+
+
   
     return (
       <div className="tab-content profile-tab">
@@ -395,12 +422,12 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
   }
   
   function NotificationsTab({preferences, patchPreferences}) {
-    const [emailAlerts, setEmailAlerts] = useState(preferences.emailAlerts);
-    const [pushAlerts, setPushAlerts] = useState(preferences.pushAlerts);
-    const [smsAlerts, setSmsAlerts] = useState(preferences.smsAlerts);
+    const [emailAlerts, setEmailAlerts] = useState(preferences?.emailAlerts);
+    const [pushAlerts, setPushAlerts] = useState(preferences?.pushAlerts);
+    const [smsAlerts, setSmsAlerts] = useState(preferences?.smsAlerts);
   
-    const [aqiThreshold, setAqiThreshold] = useState(preferences.aqiThreshold ||100);
-    const [notificationFrequency, setNotificationFrequency] = useState(preferences.notificationFrequency ||"Immediate");
+    const [aqiThreshold, setAqiThreshold] = useState(preferences?.aqiThreshold ||100);
+    const [notificationFrequency, setNotificationFrequency] = useState(preferences?.notificationFrequency ||"Immediate");
     
     const handleFieldChange = (field, value) => {
       if (field === "emailAlerts") value = !emailAlerts;

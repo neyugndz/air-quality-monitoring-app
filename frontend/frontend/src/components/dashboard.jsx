@@ -1,6 +1,6 @@
 import '../css/dashboard.css';
 import SensorMap from './sensorMap';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -18,6 +18,8 @@ import { useEffect, useState } from 'react';
 import Header from './header.jsx';
 import { DeviceService } from '../service/deviceService.js';
 import { TelemetryService } from '../service/telemetryService.js';
+import { ThreeDots } from 'react-loader-spinner';
+import { UserService } from '../service/userService.js';
 
 // Register Chart.js components
 ChartJS.register(
@@ -41,6 +43,9 @@ function Dashboard() {
   const [aqi, setAqi] = useState(null); 
   const [showAqi, setShowAqi] = useState(false);
   const [rawData, setRawData] = useState({});
+  const [preferences, setPreferences] = useState(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const navigate = useNavigate();
   
   // Query Table Management
   const [applied, setApplied] = useState(false);
@@ -83,19 +88,16 @@ function Dashboard() {
     DeviceService.index()
       .then(res => {
         setDevices(res.data);
-
+        
         DeviceService.nearestStation()
           .then((res) => {
             setSelectedDeviceId(res.data.deviceId);
             setDeviceData(res.data);
           })
           .catch((err) => {
-            console.error('Error fetching nearest station', err);
+            setSelectedDeviceId(res.data[0]?.deviceId);
+            setDeviceData(res.data);
           });
-
-        // if(res.data.length > 0) {
-        //   setSelectedDeviceId(res.data[0]?.deviceId);
-        // }
       })
       .catch(err => console.error("Error loading devices ", err));
   }, []);
@@ -156,6 +158,30 @@ function Dashboard() {
     }
   }, [selectedDeviceId, selectedDate]);
 
+  /**
+   * Get User Preferences
+   */
+  useEffect(() => {
+    UserService.singlePreferences()
+      .then(resp => {
+        setPreferences(resp.data);
+        console.log(resp.data);
+      })
+      .catch(err => {
+          console.error('Error fetching users prerfereces:', err);
+          setPreferences(null);
+      });
+    }, []);
+
+  /**
+   * Show the prompts to complete the Settings
+   */
+  useEffect(() => {
+      if (preferences && Object.values(preferences).every(value => value === null)) {
+        setShowPrompt(true);
+      }
+  }, [preferences]);
+  
 
   // Toggle between AQI and raw pollutant data
   const handleAqiToggle = () => {
@@ -185,6 +211,14 @@ function Dashboard() {
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
   };
+
+  const handlePromptClose = (shouldRedirect) => {
+    if (shouldRedirect) {
+      navigate('/settings');
+    }
+    setShowPrompt(false);
+  };
+
 
   // Query Data Management function
   const fetchData = async () => {
@@ -235,7 +269,13 @@ function Dashboard() {
     fetchData();
   };
 
-  // Get the data here
+  const LoadingIndicator = () => (
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+      <ThreeDots height="80" width="80" radius="9" color="#00BFFF" ariaLabel="three-dots-loading" visible={true} />
+    </div>
+  );
+
+
   const pieData = {
     labels: ['Polluted Time', 'Clean Time'],
     datasets: [
@@ -676,6 +716,24 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Prompt if profile is incomplete */}
+      {showPrompt && (
+        <div className="profile-completion-prompt" style={{ position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '10px', maxWidth: '400px', textAlign: 'center' }}>
+            <h3>Please complete your settings first</h3>
+            <p>In order to have best experience, we need some more details from your settings. Please take time to complete the preferences choice. </p>
+            <div style={{ marginTop: '20px' }}>
+              <button
+                onClick={() => handlePromptClose(true)}
+                style={{ padding: '8px 16px', backgroundColor: '#004c9b', color: 'white', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                Go to Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import Header from './header.jsx';
 import { DeviceService } from '../service/deviceService.js';
+import { UserService } from '../service/userService.js';
 
 // Register Chart.js modules
 ChartJS.register(
@@ -25,12 +26,16 @@ ChartJS.register(
   Legend
 );
 
-function ForecastPage({ profile, preferences }) {
+function ForecastPage() {
   const [forecastRange, setForecastRange] = useState('24h');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [deviceData, setDeviceData] = useState(null);
+  const [aqi, setAqi] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [preferences, setPreferences] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
@@ -47,38 +52,51 @@ function ForecastPage({ profile, preferences }) {
           .catch(err => console.error("Error loading devices ", err));
   }, []);
 
-   /**
-   * Load telemetry in DTO format of selected devices
-   */
-  //  useEffect(() => {
-  //   if (!selectedDeviceId) 
-  //     return;
-  //   DeviceService.single(selectedDeviceId)
-  //     .then(res => {
-  //       setDeviceData(res.data);
-  //     })
-  //     .catch(err => {
-  //       console.error('Error loading device data', err);
-  //       setDeviceData(null);
-  //     });
-  // }, [selectedDeviceId]);
-
 
   useEffect(() => {
     if (!selectedDeviceId) return;
   
     DeviceService.single(selectedDeviceId)
       .then(res => {
-        const { stationName } = res.data;  // Destructure the specific attributes
+        const { stationName, overallAqi } = res.data;  // Destructure the specific attributes
         setDeviceData({
           stationName 
         });
+        setAqi(overallAqi);
       })
       .catch(err => {
         console.error('Error loading device data', err);
         setDeviceData(null);
       });
   }, [selectedDeviceId]);
+
+  /**
+   * Fetch User Profile
+   */
+  useEffect(() => {
+    UserService.single()
+      .then(res => {
+        setProfile(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching profile", err);
+        setLoading(false);
+      })
+  }, [])
+  
+  /**
+   * Fetch User Profile
+   */
+  useEffect(() => {
+    UserService.singlePreferences()
+      .then(res => {
+        setPreferences(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching preferences", err);
+      });
+  }, []);
   
 
 
@@ -90,29 +108,74 @@ function ForecastPage({ profile, preferences }) {
   };
 
   const forecastValues = {
-    '24h': [180, 190, 210, 220, 230, 200, 190, 185, 180, 175, 170, 168, 160, 150, 148, 140, 135, 130, 125, 120, 115, 110, 105, 100],
-    '3d': [220, 180, 150],
-    '7d': [190, 210, 170, 180, 220, 230, 160]
+    '24h': [170, 180, 160, 160, 150, 190, 180, 175, 170, 165, 160, 158, 150, 140, 138, 130, 125, 120, 115, 110, 105, 100, 95, 90],  // Lowered values
+    '3d': [210, 170, 140],  // Lowered values
+    '7d': [180, 200, 160, 170, 210, 220, 150]  // Lowered values
   };
 
+
   const getAQIColor = (value) => {
-    if (value <= 50) return '#00e400'; // Good
-    if (value <= 100) return '#ffff00'; // Moderate
-    if (value <= 150) return '#ff7e00'; // Poor
-    if (value <= 200) return '#ff0000'; // Bad
-    if (value <= 300) return '#8f3f97'; // Dangerous
-    return '#7e0023'; // Hazardous
+    let backgroundColor, fontColor;
+
+    if (typeof value !== 'number') {
+      console.error("Invalid value for AQI: ", value); 
+      return { backgroundColor: '#000000', fontColor: '#ffffff' };
+    }
+
+    if (value <= 50) {
+      backgroundColor = '#00e400'; // Good
+      fontColor = '#ffffff'; // White font on green background
+    } else if (value <= 100) {
+      backgroundColor = '#ffff00'; // Moderate
+      fontColor = '#333333'; // Dark font on yellow background
+    } else if (value <= 150) {
+      backgroundColor = '#ff7e00'; // Poor
+      fontColor = '#ffffff'; // White font on orange background
+    } else if (value <= 200) {
+      backgroundColor = '#ff0000'; // Bad
+      fontColor = '#ffffff'; // White font on red background
+    } else if (value <= 300) {
+      backgroundColor = '#8f3f97'; // Dangerous
+      fontColor = '#ffffff'; // White font on purple background
+    } else {
+      backgroundColor = '#7e0023'; // Hazardous
+      fontColor = '#ffffff'; // White font on dark red background
+    }
+
+    return { backgroundColor, fontColor }; // Return both background and font color
   };
+
 
   // Define alert logic for AQI
   const checkForHealthAlerts = (forecastValues) => {
-    const highAQI = forecastValues.some(value => value > 150); // If AQI is above 150
+    const highAQI = forecastValues.some(value => value > aqi); 
+    // Threshold-Based Alerts
+    const getThresholdExceedingPercentage = (forecastValues, threshold) => {
+    const countAboveThreshold = forecastValues.filter(value => value > threshold).length;
+      return (countAboveThreshold / forecastValues.length) * 100;
+    };
+
+    const { backgroundColor, fontColor } = getThresholdExceedingPercentage(forecastValues, preferences?.aqiThreshold) > 50
+    ? getAQIColor(Math.max(...forecastValues))  
+    : { backgroundColor: '#00e400', fontColor: '#ffffff' }; 
+
     if (highAQI) {
+      // Adjust the time frame message dynamically based on the selected forecast range
+      let timeRangeMessage = '';
+      if (forecastRange === '24h') {
+        timeRangeMessage = 'in the next 24 hours';
+      } else if (forecastRange === '3d') {
+        timeRangeMessage = 'in the next 3 days';
+      } else if (forecastRange === '7d') {
+        timeRangeMessage = 'in the next 7 days';
+      }
+
       return (
-        <div style={{ backgroundColor: '#ffeb3b', padding: '12px', borderRadius: '8px', marginTop: '20px' }}>
-          <h4 style={{ color: '#856404' }}>Important AQI Alert</h4>
-          <p style={{ color: '#5a4b2e' }}>
-            <strong>Warning:</strong> The AQI is expected to exceed 150 in the next 24 hours. Please take necessary precautions such as staying indoors or using air purifiers.
+        <div style={{ backgroundColor: backgroundColor, padding: '12px', borderRadius: '8px', marginTop: '20px' }}>
+          <h4 style={{ color: fontColor }}>Important AQI Alert</h4>
+          <p style={{ color: fontColor }}>
+            <strong>Warning:</strong> The AQI is expected to exceed {preferences?.aqiThreshold} {timeRangeMessage}. 
+          Please take necessary precautions such as staying indoors or using air purifiers.
           </p>
         </div>
       );
@@ -120,33 +183,39 @@ function ForecastPage({ profile, preferences }) {
     return null;
   };
 
-  // Display personalized health advice based on forecast and user health profile
-  const healthAdvice = () => {
-    const asthmaAlert = profile?.asthma === 'Yes' ? 'People with asthma should stay indoors and use their inhalers if AQI exceeds 150.' : '';
-    const pregnancyAlert = profile?.pregnant === 'Yes' ? 'Pregnant women should avoid outdoor activities in high AQI levels.' : '';
-    return (
-      <div style={{ backgroundColor: '#fff3cd', padding: '12px 16px', borderRadius: '8px', marginTop: '20px' }}>
-        <h4 style={{ color: '#856404' }}>Personalized Health Advice</h4>
-        <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#5a4b2e' }}>
-          <li>Avoid outdoor activities if AQI exceeds 150.</li>
-          <li>{asthmaAlert}</li>
-          <li>{pregnancyAlert}</li>
-        </ul>
-        <Link
-          to="/health-recommendations"
-          style={{
-            backgroundColor: '#ff9800',
-            color: 'white',
-            padding: '8px 14px',
-            borderRadius: '6px',
-            fontSize: '14px',
-            textDecoration: 'none'
-          }}
-        >
-          View Full Health Recommendations →
-        </Link>
-      </div>
-    );
+  // Generate lightweigth health advices for time range
+  const generateHealthAdvice = (aqi, profile, threshold, forecastRange) => {
+    let adviceList = [];
+    
+    // Prepare the time-based advice prefix
+    const timeFrameAdvice = `For the ${forecastRange === '24h' ? 'next 24 hours' : forecastRange === '3d' ? 'next 3 days' : 'next 7 days'}`;
+    
+    // Generate health advice based on AQI levels
+    if (aqi <= threshold) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is good (AQI: ${aqi}). You can enjoy outdoor activities.`);
+    } else if (aqi <= 150) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is moderate (AQI: ${aqi}). Sensitive individuals should limit outdoor activities.`);
+      if (profile?.asthma || profile?.respiratoryDisease) {
+        adviceList.push("Consider staying indoors or using a mask.");
+      }
+      if (profile?.pregnant || profile?.smoker) {
+        adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+      }
+    } else if (aqi <= 200) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is unhealthy (AQI: ${aqi}). Stay indoors if possible.`);
+      if (profile?.asthma || profile?.respiratoryDisease) {
+        adviceList.push("Consider staying indoors or using a mask.");
+      }
+      if (profile?.pregnant || profile?.smoker) {
+        adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+      }
+    } else if (aqi <= 300) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is very unhealthy (AQI: ${aqi}). Avoid all outdoor activities.`);
+    } else {
+      adviceList.push(`${timeFrameAdvice}, the air quality is hazardous (AQI: ${aqi}). Remain indoors with windows closed.`);
+    }
+
+    return adviceList;
   };
 
   return (
@@ -219,7 +288,7 @@ function ForecastPage({ profile, preferences }) {
                     tension: 0.4,
                     fill: true,
                     pointRadius: 5,
-                    pointBackgroundColor: forecastValues[forecastRange].map(getAQIColor)
+                    pointBackgroundColor: forecastValues[forecastRange].map(value => getAQIColor(value).backgroundColor)
                   }
                 ]
               }}
@@ -243,7 +312,21 @@ function ForecastPage({ profile, preferences }) {
 
           {/* Alerts and Health Advice */}
           {checkForHealthAlerts(forecastValues[forecastRange])}
-          {healthAdvice()}
+          <div style={{
+                backgroundColor: '#e8f4ff',
+                padding: '20px',
+                borderRadius: '8px',
+                borderLeft: '6px solid #578FCA',
+                marginTop: '20px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+              }}>
+                <h4 style={{ marginBottom: '12px', fontSize: '17px', color: '#578FCA' }}>👨‍⚕️ Personalized Health Advice</h4>
+                <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#333', lineHeight: 1.6, listStyleType: 'none' }}>
+                  {generateHealthAdvice(aqi, profile, preferences?.threshold, forecastRange).map((advice, index) => (
+                    <li key={index}>{advice}</li>
+                  ))}
+                </ul>
+              </div>
         </div>
       </div>
     </div>
