@@ -14,6 +14,8 @@ import {
 import Header from './header.jsx';
 import { DeviceService } from '../service/deviceService.js';
 import { UserService } from '../service/userService.js';
+import { useNotification } from './notificationProvider.jsx';
+import { TelemetryService } from '../service/telemetryService.js';
 
 // Register Chart.js modules
 ChartJS.register(
@@ -27,7 +29,6 @@ ChartJS.register(
 );
 
 function ForecastPage() {
-  const [forecastRange, setForecastRange] = useState('24h');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -35,7 +36,14 @@ function ForecastPage() {
   const [aqi, setAqi] = useState(null);
   const [profile, setProfile] = useState(null);
   const [preferences, setPreferences] = useState(null);
+  const [forecastValues, setForecastValues] = useState({
+    '24h': [],
+    '3d': [],
+    '7d': []
+  });
+  const [forecastRange, setForecastRange] = useState('24h');
   const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotification();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => !prevState);
@@ -84,10 +92,7 @@ function ForecastPage() {
         setLoading(false);
       })
   }, [])
-  
-  /**
-   * Fetch User Profile
-   */
+
   useEffect(() => {
     UserService.singlePreferences()
       .then(res => {
@@ -97,22 +102,36 @@ function ForecastPage() {
         console.error("Error fetching preferences", err);
       });
   }, []);
+
+  /**
+   * Fetch forecast data whenever the selected device or forecast range changes
+   */
+   useEffect(() => {
+    if (!selectedDeviceId) return;
+
+    const startTime = new Date().toISOString();
+    const horizon = forecastRange === '24h' ? 24 : forecastRange === '3d' ? 72 : 168;
   
+    // Fetch the forecasted AQI values
+    TelemetryService.postForecastData(selectedDeviceId, startTime, horizon)
+    .then(forecast => {
+      const updatedForecast = {
+        ...forecastValues, // Keep the existing values for other ranges
+        [forecastRange]: Array.isArray(forecast.data) ? forecast.data : []  
+      };
 
+      // Update the state with the new forecast data
+      setForecastValues(updatedForecast);
+    })
+    .catch(err => console.error("Error fetching forecast", err));
+  }, [selectedDeviceId, forecastRange]);
 
-  // Example forecast data (replace with real data)
+  // Generate labels for the forecast based on range
   const forecastLabels = {
     '24h': Array.from({ length: 24 }, (_, i) => `${i + 1}:00`),
     '3d': ['Day 1', 'Day 2', 'Day 3'],
     '7d': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  };
-
-  const forecastValues = {
-    '24h': [170, 180, 160, 160, 150, 190, 180, 175, 170, 165, 160, 158, 150, 140, 138, 130, 125, 120, 115, 110, 105, 100, 95, 90],  // Lowered values
-    '3d': [210, 170, 140],  // Lowered values
-    '7d': [180, 200, 160, 170, 210, 220, 150]  // Lowered values
-  };
-
+  };  
 
   const getAQIColor = (value) => {
     let backgroundColor, fontColor;
@@ -169,7 +188,9 @@ function ForecastPage() {
       } else if (forecastRange === '7d') {
         timeRangeMessage = 'in the next 7 days';
       }
-
+      
+    // const message = `AQI is forecasted to exceed ${preferences?.aqiThreshold} ${timeRangeMessage}. Please take necessary precautions.`;
+    // showNotification(message, 'warning');
       return (
         <div style={{ backgroundColor: backgroundColor, padding: '12px', borderRadius: '8px', marginTop: '20px' }}>
           <h4 style={{ color: fontColor }}>Important AQI Alert</h4>
@@ -217,6 +238,8 @@ function ForecastPage() {
 
     return adviceList;
   };
+
+
 
   return (
     <div className="home-page" style={{ minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>

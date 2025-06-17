@@ -14,50 +14,53 @@ import Settings from "./components/settings.jsx";
 import Profile from "./components/profile.jsx";
 import ProtectedRoute from "./config/ProtectedRoute.js";
 import TrendAnalysisPage from "./components/trendAnalysisPage.jsx";
+import { NotificationProvider } from "./components/notificationProvider.jsx";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify" element={<VerificationPage />}/>
+    <NotificationProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify" element={<VerificationPage />}/>
 
-        {/* <Route path="/home" element={<Dashboard />}/>
-        <Route path="/forecast" element={<ForecastPage />}/>
-        <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
-        <Route path="/settings" element={<Settings />}/>
-        <Route path="/profile" element={<Profile />}/> */}
-        
-        <Route
-          path="/home"
-          element={<ProtectedRoute element={<Dashboard />} />}
-        />
-        <Route
-          path="/trend-analysis"
-          element={<ProtectedRoute element={<TrendAnalysisPage />} />}
-        />
-        <Route
-          path="/forecast"
-          element={<ProtectedRoute element={<ForecastPage />} />}
-        />
-        <Route
-          path="/health-recommendations"
-          element={<ProtectedRoute element={<HealthRecommendationPage />} />}
-        />
-        <Route
-          path="/settings"
-          element={<ProtectedRoute element={<Settings />} />}
-        />
-        <Route
-          path="/profile"
-          element={<ProtectedRoute element={<Profile />} />}
-        />
-      </Routes>
-    </BrowserRouter>
+          {/* <Route path="/home" element={<Dashboard />}/>
+          <Route path="/forecast" element={<ForecastPage />}/>
+          <Route path="/health-recommendations" element={<HealthRecommendationPage />}/>
+          <Route path="/settings" element={<Settings />}/>
+          <Route path="/profile" element={<Profile />}/> */}
+          
+          <Route
+            path="/home"
+            element={<ProtectedRoute element={<Dashboard />} />}
+          />
+          <Route
+            path="/trend-analysis"
+            element={<ProtectedRoute element={<TrendAnalysisPage />} />}
+          />
+          <Route
+            path="/forecast"
+            element={<ProtectedRoute element={<ForecastPage />} />}
+          />
+          <Route
+            path="/health-recommendations"
+            element={<ProtectedRoute element={<HealthRecommendationPage />} />}
+          />
+          <Route
+            path="/settings"
+            element={<ProtectedRoute element={<Settings />} />}
+          />
+          <Route
+            path="/profile"
+            element={<ProtectedRoute element={<Profile />} />}
+          />
+        </Routes>
+      </BrowserRouter>
+    </NotificationProvider>  
   );
 }
 

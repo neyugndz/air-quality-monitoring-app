@@ -27,6 +27,7 @@
     "react-map-gl-monorepo": "github:visgl/react-map-gl",
     "react-router-dom": "^7.6.0",
     "react-scripts": "5.0.1",
+    "react-toastify": "^11.0.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

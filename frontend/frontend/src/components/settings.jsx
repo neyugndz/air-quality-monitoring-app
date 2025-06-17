@@ -349,8 +349,7 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
     const [displayLanguage, setDisplayLanguage] = useState(preferences?.displayLanguage || "");
     const [showPollutionAlerts, setShowPollutionAlerts] = useState(preferences?.showPollutionAlerts);
     const [showHealthTips, setShowHealthTips] = useState(preferences?.showHealthTips);
-    // const [useLocation, setUseLocation] = useState(true);
-
+    
     const handleFieldChange = (field, value) => {
       if (field === "showPollutionAlerts") value = !showPollutionAlerts;
       if (field === "showHealthTips") value = !showHealthTips;
@@ -407,14 +406,6 @@ function ProfileTab({ profile, setProfile, preferences, patchProfile, patchPrefe
                     onChange={() => handleFieldChange("showHealthTips", !showHealthTips)}
                 />
             </li>
-            {/* <li className="settings-item">
-                <label htmlFor="allowPersonalizeLocation">Allow location access for personalized data</label>
-                <ToggleSwitch
-                    Name="allowPersonalizeLocation"
-                    checked={useLocation}
-                    onChange={() => setUseLocation(!useLocation)}
-                />
-            </li> */}
           </ul>
         </section>
       </div>
