@@ -60,8 +60,6 @@ function SensorMap() {
   },[]);  
 
 
-
-
   // Function to create the custom marker icon
   const createCustomIcon = (aqi) => {
     const { backgroundColor } = getAqiCategory(aqi);

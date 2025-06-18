@@ -69,9 +69,16 @@ function TrendAnalysisPage() {
             TelemetryService.getDataOverTimeRange(selectedDeviceId, startDate, endDate)
                 .then(res => {
                     
-                     // Extract time labels (e.g., "2025-06-04", "2025-06-05")
-                    const labels = res.data.map(item => item.formattedDate.split(' ')[0]);  // Get only the date part, e.g., "2025-06-04"
-                    const uniqueLabels = [...new Set(labels)]; 
+                    const formatDate = (dateString) => {
+                        const date = new Date(dateString);
+                        const day = String(date.getDate()).padStart(2, '0');  
+                        const month = String(date.getMonth() + 1).padStart(2, '0');  
+                        const year = date.getFullYear();
+                        return `${day}-${month}-${year}`;
+                    };
+
+                    const labels = res.data.map(item => formatDate(item.formattedDate.split(' ')[0]));  
+                    const uniqueLabels = [...new Set(labels)];
 
                     const selectedPollutantData = res.data.map(item => item[selectedPollutant]);
 
@@ -90,10 +97,7 @@ function TrendAnalysisPage() {
             // Fetch comparison data for two devices over the time range
             TelemetryService.compareDataOverTimeRange(selectedDeviceId, selectedDeviceId2, startDate, endDate)
                 .then(res => {
-
-                    const labels = res.data[selectedDeviceId]?.map(item => item.formattedDate.split(' ')[0]);
-                    const uniqueLabels = [...new Set(labels)]; 
-
+                    
                     const station1Data = res.data[selectedDeviceId]?.map(item => item[selectedPollutant]);
                     const station2Data = res.data[selectedDeviceId2]?.map(item => item[selectedPollutant]);
                     if (!station1Data || !station2Data) {
@@ -137,12 +141,10 @@ function TrendAnalysisPage() {
     };
 
     const handleStartDateChange = (e) => {
-        // const formattedStartDate = convertToDisplayDate(e.target.value);
         setStartDate(e.target.value);
     };
 
     const handleEndDateChange = (e) => {
-        // const formattedEndDate = convertToDisplayDate(e.target.value);
         setEndDate(e.target.value);
     };
 
@@ -308,7 +310,6 @@ function TrendAnalysisPage() {
                     <h3>Pollutant Comparison Between Station 1 and Station 2</h3>
                     <Bar
                         data={{
-                            // labels: ['01', '05', '10', '15', '20', '25', '30'], 
                             labels: pollutantLabels,
                             datasets: [
                                 {

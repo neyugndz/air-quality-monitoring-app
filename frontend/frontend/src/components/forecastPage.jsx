@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
@@ -16,6 +16,7 @@ import { DeviceService } from '../service/deviceService.js';
 import { UserService } from '../service/userService.js';
 import { useNotification } from './notificationProvider.jsx';
 import { TelemetryService } from '../service/telemetryService.js';
+import { ThreeDots } from 'react-loader-spinner';
 
 // Register Chart.js modules
 ChartJS.register(
@@ -42,7 +43,10 @@ function ForecastPage() {
     '7d': []
   });
   const [forecastRange, setForecastRange] = useState('24h');
+  const [forecastLabels, setForecastLabels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isChartRendered, setIsChartRendered] = useState(false);
+  const [isFirstRender, setIsFirstRender] = useState(true); // Track the first render
   const { showNotification } = useNotification();
 
   const toggleSidebar = () => {
@@ -106,32 +110,116 @@ function ForecastPage() {
   /**
    * Fetch forecast data whenever the selected device or forecast range changes
    */
-   useEffect(() => {
+  useEffect(() => {
     if (!selectedDeviceId) return;
-
+  
     const startTime = new Date().toISOString();
     const horizon = forecastRange === '24h' ? 24 : forecastRange === '3d' ? 72 : 168;
   
+    setLoading(true);
+  
     // Fetch the forecasted AQI values
     TelemetryService.postForecastData(selectedDeviceId, startTime, horizon)
-    .then(forecast => {
-      const updatedForecast = {
-        ...forecastValues, // Keep the existing values for other ranges
-        [forecastRange]: Array.isArray(forecast.data) ? forecast.data : []  
-      };
+      .then(forecast => {
+        let updatedForecast = { ...forecastValues };
+  
+        if (forecastRange === '3d') {
+          // If forecasting for 3 days, average the AQI values for each 24-hour period
+          const dailyAverages = [];
+  
+          // Loop through the forecasted hourly AQI values (72 hours) and calculate the daily average for each 24-hour period
+          for (let i = 0; i < 3; i++) {
+            const dailyData = forecast.data.slice(i * 24, (i + 1) * 24); 
+            const averageAQI = dailyData.reduce((acc, value) => acc + value, 0) / dailyData.length; 
+            dailyAverages.push(averageAQI); 
+          }
+  
+          // Update the forecastValues for '3d' with the calculated daily averages
+          updatedForecast[forecastRange] = dailyAverages;
+        } else if (forecastRange === '7d') {
+          // If forecasting for 7 days, average the AQI values for each 24-hour period (168 hours total)
+          const dailyAverages = [];
+  
+          // Loop through the forecasted hourly AQI values (168 hours) and calculate the daily average for each 24-hour period
+          for (let i = 0; i < 7; i++) {
+            const dailyData = forecast.data.slice(i * 24, (i + 1) * 24); 
+            const averageAQI = dailyData.reduce((acc, value) => acc + value, 0) / dailyData.length; 
+            dailyAverages.push(averageAQI); 
+          }
+  
+          updatedForecast[forecastRange] = dailyAverages;
+        } else {
+          updatedForecast[forecastRange] = Array.isArray(forecast.data) ? forecast.data : [];
+        }
 
-      // Update the state with the new forecast data
-      setForecastValues(updatedForecast);
-    })
-    .catch(err => console.error("Error fetching forecast", err));
+        const labels = generateForecastLabels(forecastRange);
+        setForecastLabels(labels);
+        
+        setForecastValues(updatedForecast);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching forecast", err);
+        setLoading(false);
+      });
   }, [selectedDeviceId, forecastRange]);
+  
 
   // Generate labels for the forecast based on range
-  const forecastLabels = {
-    '24h': Array.from({ length: 24 }, (_, i) => `${i + 1}:00`),
-    '3d': ['Day 1', 'Day 2', 'Day 3'],
-    '7d': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  };  
+  const generateForecastLabels = (forecastRange) => {
+    const labels = [];
+    const currentDate = new Date();
+    
+    const formatDate = (date) => {
+      const day = String(date.getDate()).padStart(2, '0'); 
+      const month = String(date.getMonth() + 1).padStart(2, '0'); 
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+  
+    if (forecastRange === '24h') {
+      for (let i = 0; i < 24; i++) {
+        const newDate = new Date(currentDate);
+        newDate.setHours(currentDate.getHours() + i);
+        labels.push(`${newDate.getHours()}:00`);
+      }
+    } else if (forecastRange === '3d') {
+      for (let i = 0; i < 3; i++) {
+        const newDate = new Date(currentDate);
+        newDate.setDate(currentDate.getDate() + i);
+        labels.push(`Day ${i + 1} (${formatDate(newDate)})`);
+      }
+    } else if (forecastRange === '7d') {
+      for (let i = 0; i < 7; i++) {
+        const newDate = new Date(currentDate);
+        newDate.setDate(currentDate.getDate() + i);
+        labels.push(`${formatDate(newDate)} (${newDate.toLocaleDateString('en-US', { weekday: 'short' })})`);
+      }
+    }
+  
+    return labels;
+  };
+  
+  
+
+  
+  /**
+   * Reset chart render status whenever forecast data changes
+   */
+  useEffect(() => {
+
+    // Skip the reset on the first render
+    if (isFirstRender) {
+      setIsFirstRender(false); // After the first render, set it to false
+      return;
+    }
+
+    if (!loading) {
+      setIsChartRendered(false);
+      console.log('Chart is being reset');
+    }
+  }, [forecastValues, forecastRange, loading]);
+  
 
   const getAQIColor = (value) => {
     let backgroundColor, fontColor;
@@ -142,26 +230,26 @@ function ForecastPage() {
     }
 
     if (value <= 50) {
-      backgroundColor = '#00e400'; // Good
-      fontColor = '#ffffff'; // White font on green background
+      backgroundColor = '#00e400'; 
+      fontColor = '#ffffff'; 
     } else if (value <= 100) {
-      backgroundColor = '#ffff00'; // Moderate
-      fontColor = '#333333'; // Dark font on yellow background
+      backgroundColor = '#ffff00'; 
+      fontColor = '#333333'; 
     } else if (value <= 150) {
-      backgroundColor = '#ff7e00'; // Poor
-      fontColor = '#ffffff'; // White font on orange background
+      backgroundColor = '#ff7e00'; 
+      fontColor = '#ffffff'; 
     } else if (value <= 200) {
-      backgroundColor = '#ff0000'; // Bad
-      fontColor = '#ffffff'; // White font on red background
+      backgroundColor = '#ff0000'; 
+      fontColor = '#ffffff'; 
     } else if (value <= 300) {
-      backgroundColor = '#8f3f97'; // Dangerous
-      fontColor = '#ffffff'; // White font on purple background
+      backgroundColor = '#8f3f97'; 
+      fontColor = '#ffffff'; 
     } else {
-      backgroundColor = '#7e0023'; // Hazardous
-      fontColor = '#ffffff'; // White font on dark red background
+      backgroundColor = '#7e0023'; 
+      fontColor = '#ffffff'; 
     }
 
-    return { backgroundColor, fontColor }; // Return both background and font color
+    return { backgroundColor, fontColor }; 
   };
 
 
@@ -189,8 +277,6 @@ function ForecastPage() {
         timeRangeMessage = 'in the next 7 days';
       }
       
-    // const message = `AQI is forecasted to exceed ${preferences?.aqiThreshold} ${timeRangeMessage}. Please take necessary precautions.`;
-    // showNotification(message, 'warning');
       return (
         <div style={{ backgroundColor: backgroundColor, padding: '12px', borderRadius: '8px', marginTop: '20px' }}>
           <h4 style={{ color: fontColor }}>Important AQI Alert</h4>
@@ -205,39 +291,89 @@ function ForecastPage() {
   };
 
   // Generate lightweigth health advices for time range
-  const generateHealthAdvice = (aqi, profile, threshold, forecastRange) => {
+  const generateHealthAdvice = (forecastValues, profile, threshold, forecastRange) => {
     let adviceList = [];
-    
+  
     // Prepare the time-based advice prefix
     const timeFrameAdvice = `For the ${forecastRange === '24h' ? 'next 24 hours' : forecastRange === '3d' ? 'next 3 days' : 'next 7 days'}`;
-    
-    // Generate health advice based on AQI levels
-    if (aqi <= threshold) {
-      adviceList.push(`${timeFrameAdvice}, the air quality is good (AQI: ${aqi}). You can enjoy outdoor activities.`);
-    } else if (aqi <= 150) {
-      adviceList.push(`${timeFrameAdvice}, the air quality is moderate (AQI: ${aqi}). Sensitive individuals should limit outdoor activities.`);
+  
+    // Calculate the average AQI for the forecast period
+    const averageAQI = forecastValues.reduce((acc, value) => acc + value, 0) / forecastValues.length;
+  
+    // Generate health advice based on the average AQI
+    if (averageAQI <= threshold) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is good (average AQI: ${averageAQI.toFixed(2)}). You can enjoy outdoor activities.`);
+    } else if (averageAQI <= 150) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is moderate (average AQI: ${averageAQI.toFixed(2)}). Sensitive individuals should limit outdoor activities.`);
       if (profile?.asthma || profile?.respiratoryDisease) {
         adviceList.push("Consider staying indoors or using a mask.");
       }
       if (profile?.pregnant || profile?.smoker) {
         adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
       }
-    } else if (aqi <= 200) {
-      adviceList.push(`${timeFrameAdvice}, the air quality is unhealthy (AQI: ${aqi}). Stay indoors if possible.`);
+    } else if (averageAQI <= 200) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is unhealthy (average AQI: ${averageAQI.toFixed(2)}). Stay indoors if possible.`);
       if (profile?.asthma || profile?.respiratoryDisease) {
         adviceList.push("Consider staying indoors or using a mask.");
       }
       if (profile?.pregnant || profile?.smoker) {
         adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
       }
-    } else if (aqi <= 300) {
-      adviceList.push(`${timeFrameAdvice}, the air quality is very unhealthy (AQI: ${aqi}). Avoid all outdoor activities.`);
+    } else if (averageAQI <= 300) {
+      adviceList.push(`${timeFrameAdvice}, the air quality is very unhealthy (average AQI: ${averageAQI.toFixed(2)}). Avoid all outdoor activities.`);
+      if (profile?.asthma || profile?.respiratoryDisease) {
+        adviceList.push("Consider staying indoors or using a mask.");
+      }
+      if (profile?.pregnant || profile?.smoker) {
+        adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+      }
     } else {
-      adviceList.push(`${timeFrameAdvice}, the air quality is hazardous (AQI: ${aqi}). Remain indoors with windows closed.`);
+      adviceList.push(`${timeFrameAdvice}, the air quality is hazardous (average AQI: ${averageAQI.toFixed(2)}). Remain indoors with windows closed.`);
+      if (profile?.asthma || profile?.respiratoryDisease) {
+        adviceList.push("Consider staying indoors or using a mask.");
+      }
+      if (profile?.pregnant || profile?.smoker) {
+        adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+      }
     }
-
+  
     return adviceList;
   };
+  
+  
+  // const generateHealthAdvice = (aqi, profile, threshold, forecastRange) => {
+  //   let adviceList = [];
+    
+  //   // Prepare the time-based advice prefix
+  //   const timeFrameAdvice = `For the ${forecastRange === '24h' ? 'next 24 hours' : forecastRange === '3d' ? 'next 3 days' : 'next 7 days'}`;
+    
+  //   // Generate health advice based on AQI levels
+  //   if (aqi <= threshold) {
+  //     adviceList.push(`${timeFrameAdvice}, the air quality is good (AQI: ${aqi}). You can enjoy outdoor activities.`);
+  //   } else if (aqi <= 150) {
+  //     adviceList.push(`${timeFrameAdvice}, the air quality is moderate (AQI: ${aqi}). Sensitive individuals should limit outdoor activities.`);
+  //     if (profile?.asthma || profile?.respiratoryDisease) {
+  //       adviceList.push("Consider staying indoors or using a mask.");
+  //     }
+  //     if (profile?.pregnant || profile?.smoker) {
+  //       adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+  //     }
+  //   } else if (aqi <= 200) {
+  //     adviceList.push(`${timeFrameAdvice}, the air quality is unhealthy (AQI: ${aqi}). Stay indoors if possible.`);
+  //     if (profile?.asthma || profile?.respiratoryDisease) {
+  //       adviceList.push("Consider staying indoors or using a mask.");
+  //     }
+  //     if (profile?.pregnant || profile?.smoker) {
+  //       adviceList.push("Pregnant individuals and smokers should avoid outdoor exposure.");
+  //     }
+  //   } else if (aqi <= 300) {
+  //     adviceList.push(`${timeFrameAdvice}, the air quality is very unhealthy (AQI: ${aqi}). Avoid all outdoor activities.`);
+  //   } else {
+  //     adviceList.push(`${timeFrameAdvice}, the air quality is hazardous (AQI: ${aqi}). Remain indoors with windows closed.`);
+  //   }
+
+  //   return adviceList;
+  // };
 
 
 
@@ -290,52 +426,77 @@ function ForecastPage() {
                         </option>
                     ))}
                 </select>
-            </div>
+              </div>
             </div>
           </div>
 
-          {/* AQI Forecast Chart */}
-          <div style={{ background: 'white', padding: '1rem', borderRadius: '8px' }}>
-            <h3 style={{ fontSize: '20px', color: '#253892', marginBottom: '12px' }}>
-              {`AQI Forecast for ${deviceData?.stationName || 'Unknown '} Station (${forecastRange === '24h' ? 'Next 24 Hours' : forecastRange === '3d' ? 'Next 3 Days' : 'Next 7 Days'})`}
-            </h3>
-            <Line
-              data={{
-                labels: forecastLabels[forecastRange],
-                datasets: [
-                  {
-                    label: 'Predicted AQI',
-                    data: forecastValues[forecastRange],
-                    borderColor: '#f44336',
-                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 5,
-                    pointBackgroundColor: forecastValues[forecastRange].map(value => getAQIColor(value).backgroundColor)
-                  }
-                ]
-              }}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: { display: false },
-                  tooltip: {
-                    callbacks: {
-                      label: (context) => `AQI: ${context.raw}`
+          {/* Show loading screen if data is still being fetched or chart isn't rendered yet */}
+          {loading ? (
+            <div style={{ textAlign: 'center', marginTop: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+              <h3>Loading... Please wait.</h3>
+              <div>
+                <ThreeDots
+                  height="80"
+                  width="80"
+                  radius="9"
+                  color="#00BFFF"
+                  ariaLabel="three-dots-loading"
+                  visible={true}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* AQI Forecast Chart */}
+              <div style={{ background: 'white', padding: '1rem', borderRadius: '8px' }}>
+                <h3 style={{ fontSize: '20px', color: '#253892', marginBottom: '12px' }}>
+                  {`AQI Forecast for ${deviceData?.stationName || 'Unknown '} Station (${forecastRange === '24h' ? 'Next 24 Hours' : forecastRange === '3d' ? 'Next 3 Days' : 'Next 7 Days'})`}
+                </h3>
+                <Line
+                  data={{
+                    labels: forecastLabels,
+                    datasets: [
+                      {
+                        label: 'Predicted AQI',
+                        data: forecastValues[forecastRange],
+                        borderColor: '#f44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: forecastValues[forecastRange].map(value => getAQIColor(value).backgroundColor)
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => `AQI: ${context.raw}`
+                        }
+                      }
+                    },
+                    animation: {
+                      onComplete: () => {
+                        setIsChartRendered(true);
+                        console.log('Chart rendered successfully');
+                      },
+                      delay: 0,
+                    },
+                    scales: {
+                      x: { title: { display: true, text: 'Time' } },
+                      y: { title: { display: true, text: 'AQI Index' }, min: 0, max: 600 }
                     }
-                  }
-                },
-                scales: {
-                  x: { title: { display: true, text: 'Time' } },
-                  y: { title: { display: true, text: 'AQI Index' }, min: 0, max: 400 }
-                }
-              }}
-            />
-          </div>
+                  }}
+                />
+              </div>
 
-          {/* Alerts and Health Advice */}
-          {checkForHealthAlerts(forecastValues[forecastRange])}
-          <div style={{
+              {/* Alerts and Health Advice */}
+              {checkForHealthAlerts(forecastValues[forecastRange])}
+
+              <div style={{
                 backgroundColor: '#e8f4ff',
                 padding: '20px',
                 borderRadius: '8px',
@@ -345,11 +506,31 @@ function ForecastPage() {
               }}>
                 <h4 style={{ marginBottom: '12px', fontSize: '17px', color: '#578FCA' }}>👨‍⚕️ Personalized Health Advice</h4>
                 <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#333', lineHeight: 1.6, listStyleType: 'none' }}>
-                  {generateHealthAdvice(aqi, profile, preferences?.threshold, forecastRange).map((advice, index) => (
+                  {generateHealthAdvice(forecastValues[forecastRange], profile, preferences?.threshold, forecastRange).map((advice, index) => (
                     <li key={index}>{advice}</li>
                   ))}
                 </ul>
+
+                <Link to="/health-recommendations" style={{
+                  bottom: '20px',
+                  right: '20px',
+                  padding: '8px 16px',
+                  backgroundColor: '#578FCA',
+                  color: 'white',
+                  borderRadius: '5px',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease',
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#4a76a8'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#578FCA'}>
+                  View Full Health Advice
+                </Link>
               </div>
+            </>
+          )}
         </div>
       </div>
     </div>

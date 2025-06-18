@@ -57,7 +57,7 @@ export const NotificationProvider = ({ children }) => {
         if (!preferences) return; 
 
         if (preferences.showPollutionAlerts ) {
-            console.log("This is from the provider");
+            // console.log("This is from the provider");
             const forecastValues = [180, 190, 100]; // Example forecast values, replace with actual data
             checkForHealthAlerts(forecastValues);
         }
