@@ -3,14 +3,20 @@ package vn.vnpt_tech.airquality.air_quality_monitoring.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.ForecastRequest;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.ForecastResult;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.ForecastResultRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -29,7 +35,71 @@ public class ForecastService {
     @Autowired
     private TelemetryRepository telemetryRepository;
 
+    @Autowired
+    private DeviceRepository deviceRepository;
+
+    @Autowired
+    private ForecastResultRepository forecastResultRepository;
+
+    @Scheduled(fixedRate = 3600000)
+    public void updateForecast() {
+        List<Device> devices = deviceRepository.findAll();
+
+        for (Device device : devices) {
+            String deviceId = device.getDeviceId();
+
+            String startTime = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX"));
+
+            int[] horizons = {24, 72, 168};
+
+            for (int horizon : horizons) {
+                ForecastRequest forecastRequest = new ForecastRequest();
+                forecastRequest.setDeviceId(deviceId);
+                forecastRequest.setStartTime(startTime);
+                forecastRequest.setHorizon(horizon);
+
+                // Get the forecast data dynamically for each device and horizon
+                List<Double> forecast = getForecast(forecastRequest);
+            }
+        }
+    }
+
     public List<Double> getForecast(ForecastRequest forecastRequest) {
+        // Convert the startTime to ZonedDateTime (this will handle the 'Z' time zone if present)
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+
+        ZonedDateTime startTimeQuery;
+        try {
+            startTimeQuery = ZonedDateTime.parse(forecastRequest.getStartTime(), formatterDate);
+        } catch (Exception e) {
+            logger.error("Error parsing startTime: {}", forecastRequest.getStartTime(), e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid startTime format");
+        }
+
+        // Convert ZonedDateTime to LocalDateTime (without time zone)
+        LocalDateTime localStartTime = startTimeQuery.toLocalDateTime();
+
+        // Calculate the ±1 hour tolerance range
+        LocalDateTime startTimeMinusOneHour = localStartTime.minusHours(1);
+        LocalDateTime startTimePlusOneHour = localStartTime.plusHours(1);
+
+        // Convert LocalDateTime back to ZonedDateTime to use with UTC (Z)
+        ZonedDateTime startTimeMinusOneHourUtc = startTimeMinusOneHour.atZone(ZoneId.of("UTC"));
+        ZonedDateTime startTimePlusOneHourUtc = startTimePlusOneHour.atZone(ZoneId.of("UTC"));
+
+        // Format the times in UTC with "Z" for Zulu time
+        String startTimeMinusOneHourStr = startTimeMinusOneHourUtc.format(formatterDate);
+        String startTimePlusOneHourStr = startTimePlusOneHourUtc.format(formatterDate);
+
+        // Step 1: Check if the forecast is already stored in the database with ±1 hour tolerance
+        ForecastResult existingForecast = forecastResultRepository.findByDeviceIdAndStartTimeWithTolerance(
+                forecastRequest.getDeviceId(), startTimeMinusOneHourStr, startTimePlusOneHourStr, forecastRequest.getHorizon());
+
+
+        if (existingForecast != null) {
+            // Return the saved forecast if it exists
+            return existingForecast.getForecast();
+        }
         RestTemplate restTemplate = new RestTemplate();
 
         // Step 1: Fetch telemetry data from the database
@@ -48,47 +118,32 @@ public class ForecastService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid startTime format");
         }
 
-        // If you want to convert it to LocalDateTime (without time zone):
-        LocalDateTime localStartTime = startTime.toLocalDateTime();
+        ZonedDateTime endTime = ZonedDateTime.now();  // End time should be now
+        ZonedDateTime startTimeForPrediction = endTime.minusHours(forecastRequest.getHorizon()); // Start time based on horizon
 
-        // Calculate the end time based on horizon
-        LocalDateTime endTime = localStartTime.plusHours(forecastRequest.getHorizon());
+        // Step 2: Fetch recent telemetry data from the database for the last `horizon` hours
+        List<Telemetry> recentTelemetry = telemetryRepository.findByDeviceIdAndTimestampBetween(deviceId, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
 
-        // Log the fetched device and time window information
-        logger.info("Fetching telemetry for device: {} from {} to {}", deviceId, localStartTime, endTime);
-
-        List<Telemetry> recentTelemetry = telemetryRepository.findByDeviceIdAndTimestampBetween(deviceId, localStartTime, endTime);
-
-        // Log the telemetry data retrieved
-        logger.info("Fetched {} telemetry records for device: {}", recentTelemetry.size(), deviceId);
-
-        // Step 2: Convert the telemetry data into a format suitable for Flask model
         double[][] telemetryData = convertTelemetryToArray(recentTelemetry);
-
-        // Log the telemetry data being sent to Flask
-        logger.debug("Sending telemetry data to Flask for forecasting: {}", (Object) telemetryData);
 
         // Step 3: Prepare the request body to send to Flask API
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("recent_data", telemetryData);
         requestBody.put("horizon", forecastRequest.getHorizon());
 
-        // Send POST request to Flask API
-        logger.info("Sending request to Flask API at: {}", FLASK_API_URL);
         ResponseEntity<Map> response = restTemplate.postForEntity(FLASK_API_URL, requestBody, Map.class);
-
-        // Log the response from Flask API
-        logger.info("Received response from Flask API: {}", response.getBody());
-
         // Extract the forecast data from the response
         List<Double> forecast = (List<Double>) response.getBody().get("forecast");
+        ForecastResult newForecast = new ForecastResult();
+        newForecast.setDeviceId(deviceId);
+        newForecast.setStartTime(forecastRequest.getStartTime());
+        newForecast.setHorizon(forecastRequest.getHorizon());
+        newForecast.setForecast(forecast);
 
-        // Log the forecast results
-        logger.info("Forecasted AQI: {}", forecast);
+        forecastResultRepository.save(newForecast);
 
         return forecast;
     }
-
 
     /**
      * Convert the telemetry list to the required format (e.g., a 2D array for the model)

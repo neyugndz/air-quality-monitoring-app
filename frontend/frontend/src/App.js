@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./components/login.jsx";
@@ -15,8 +15,26 @@ import Profile from "./components/profile.jsx";
 import ProtectedRoute from "./config/ProtectedRoute.js";
 import TrendAnalysisPage from "./components/trendAnalysisPage.jsx";
 import { NotificationProvider } from "./components/notificationProvider.jsx";
+import { requestPermission } from './components/push-notification.jsx';
 
 function App() {
+
+  useEffect(() => {
+    // Request notification permission
+    requestPermission();
+  }, []);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then(function (registration) {
+        console.log("Service Worker registered with scope:", registration.scope);
+      })
+      .catch(function (error) {
+        console.log("Service Worker registration failed:", error);
+      });
+  }
+
   return (
     <NotificationProvider>
       <BrowserRouter>

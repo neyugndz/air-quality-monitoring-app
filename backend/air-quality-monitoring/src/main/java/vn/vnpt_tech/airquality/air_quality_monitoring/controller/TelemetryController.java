@@ -11,15 +11,17 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.dto.TelemetryDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.UserPreferences;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
-import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
+import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.UserPreferencesRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.service.TelemetryService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,9 @@ public class TelemetryController {
 
     @Autowired
     private UserPreferencesRepository userPreferencesRepository;
+
+    @Autowired
+    private DeviceRepository deviceRepository;
 
     @Autowired
     private TelemetryService telemetryService;
@@ -58,34 +63,64 @@ public class TelemetryController {
      */
     @PostMapping("/generate")
     public ResponseEntity<String> generateDummyData(
-            @RequestParam(defaultValue = "100") int count,
             @AuthenticationPrincipal Users user // This injects the logged-in user
     ) {
+        List<Device> devices = deviceRepository.findAll();
+
         List<Telemetry> dummyList = new ArrayList<>();
         Random random = new Random();
         LocalDateTime now = LocalDateTime.now();
 
-        for (int i = 0; i < count; i++) {
-            Telemetry telemetry = Telemetry.builder()
-                    .deviceId(user.getEmail()) // link fake data to user account
-                    .latitude(21.0285 + random.nextDouble() * 0.01)
-                    .longitude(105.8542 + random.nextDouble() * 0.01)
-                    .pm25(random.nextDouble() * 400)
-                    .pm10(random.nextDouble() * 500)
-                    .co(random.nextDouble() * 10)
-                    .so2(random.nextDouble() * 1)
-                    .no2(random.nextDouble() * 1)
-                    .o3(random.nextDouble() * 1)
-                    .timestamp(now.minusMinutes(count - i))
-                    .build();
+        int[] days = {2, 3, 4};
+        long intervalsPerDay = 24 * 60 / 15;
 
-            telemetryService.applyAqiCalculations(telemetry); // TODO: Calculate and set AQI values (removal, support testing)
-            dummyList.add(telemetry);
+        for (Device device : devices) {
+            // For each device, simulate telemetry data for the previous 2, 3, and 4 days
+            for (int daysAgo : days) {
+                // Calculate the start of the day (for each of the 2, 3, or 4 days ago)
+                LocalDateTime dayStart = now.minus(daysAgo, ChronoUnit.DAYS).toLocalDate().atStartOfDay();
+
+                // Generate telemetry data for each 15-minute interval within the day
+                for (int j = 0; j < intervalsPerDay; j++) {
+                    // Calculate the timestamp for the current 15-minute interval
+                    LocalDateTime timestamp = dayStart.plusMinutes(j * 15);  // 15-minute intervals
+
+                    // Generate telemetry data with the specified ranges for each pollutant
+                    Telemetry telemetry = Telemetry.builder()
+                            .deviceId(device.getDeviceId()) // Link to device's deviceId
+                            .latitude(device.getLatitude()) // Use device's latitude
+                            .longitude(device.getLongitude()) // Use device's longitude
+                            .pm25(round(random.nextDouble() * (85 - 20) + 20, 1)) // PM2.5 range: 20 to 85
+                            .pm10(round(random.nextDouble() * (100 - 30) + 30, 1)) // PM10 range: 30 to 100
+                            .co(round(random.nextDouble() * (3.0 - 0.1) + 0.1, 3)) // CO range: 0.1 to 3.0
+                            .so2(round(random.nextDouble() * (0.05 - 0.002) + 0.002, 4)) // SO2 range: 0.002 to 0.05
+                            .o3(round(random.nextDouble() * (0.08 - 0.02) + 0.02, 3)) // O3 range: 0.02 to 0.08
+                            .no2(round(random.nextDouble() * (0.15 - 0.01) + 0.01, 3)) // NO2 range: 0.01 to 0.15
+                            .timestamp(timestamp) // Simulate timestamp for each 15-minute interval
+                            .build();
+
+                    telemetryService.applyAqiCalculations(telemetry); // Apply AQI calculations if needed
+                    dummyList.add(telemetry);
+                }
+            }
         }
 
+        // Save the dummy data to the repository
         telemetryRepository.saveAll(dummyList);
-        return ResponseEntity.ok("Inserted " + count + " dummy telemetrys.");
+
+        return ResponseEntity.ok("Inserted dummy telemetry records.");
     }
+
+    // Helper method to round numbers to a specific number of decimal places
+    private double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        long factor = (long) Math.pow(10, places);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return (double) tmp / factor;
+    }
+
 
     /**
      * Get all sensor readings (optional: make public)

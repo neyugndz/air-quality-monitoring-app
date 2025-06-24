@@ -200,9 +200,6 @@ function ForecastPage() {
     return labels;
   };
   
-  
-
-  
   /**
    * Reset chart render status whenever forecast data changes
    */

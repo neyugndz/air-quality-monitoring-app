@@ -30,9 +30,6 @@ public class ForecastController {
 
     @PostMapping
     public List<Double> getForecast(@RequestBody ForecastRequest forecastRequest) {
-        // Log the received ForecastRequest for debugging
-        logger.info("Received ForecastRequest: {}", forecastRequest);
-
         return forecastService.getForecast(forecastRequest);
     }
 

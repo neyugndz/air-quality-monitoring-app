@@ -20,6 +20,7 @@ import { DeviceService } from '../service/deviceService.js';
 import { TelemetryService } from '../service/telemetryService.js';
 import { ThreeDots } from 'react-loader-spinner';
 import { UserService } from '../service/userService.js';
+import { useNotification } from './notificationProvider.jsx';
 
 // Register Chart.js components
 ChartJS.register(
@@ -45,6 +46,7 @@ function Dashboard() {
   const [rawData, setRawData] = useState({});
   const [preferences, setPreferences] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [alerts, setAlerts] = useState([]);
   const navigate = useNavigate();
   
   // Query Table Management
@@ -74,6 +76,7 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(''); 
   const [pollutedTimePercentage, setPollutedTimePercentage] = useState(null);
   const [dataRows, setDataRows] = useState([]); 
+  const { checkCurrentAqiAlert } = useNotification();
 
   // For the dynamic table filtering
   const toggleCheckbox = (key) => {
@@ -127,14 +130,39 @@ function Dashboard() {
 
     TelemetryService.singleRawDataAndAQI(selectedDeviceId)
       .then(res => {
-        setAqi(res.data.overallAqi); 
         setRawData(res.data);   
+        setAqi(res.data.overallAqi);
+        checkCurrentAqiAlert(res.data.overallAqi);
       })
       .catch(err => {
         console.error('Error loading telemetry and AQI data', err);
         setAqi(null);
         setRawData(null);
       });
+  }, [selectedDeviceId]);
+
+   /**
+    * Polling for current AQI based on selected device
+    */
+   useEffect(() => {
+    if (!selectedDeviceId) return;
+
+    const fetchAqiData = () => {
+        TelemetryService.singleRawDataAndAQI(selectedDeviceId)
+            .then((res) => {
+                const currentAqi = res.data?.overallAqi;
+                setAqi(currentAqi);
+                checkCurrentAqiAlert(currentAqi);
+            })
+            .catch((err) => console.error('Error fetching current AQI:', err));
+    };
+
+    // Fetch current AQI every 30 seconds
+    const intervalId = setInterval(fetchAqiData, 3600000);
+
+    return () => {
+        clearInterval(intervalId); // Cleanup on component unmount
+    };
   }, [selectedDeviceId]);
 
   /**
@@ -290,6 +318,22 @@ function Dashboard() {
     ],
   };
 
+  useEffect(() => {
+    const eventSource = new EventSource("http://localhost:8080/api/alerts");
+
+    // Event listener for receiving real-time alerts
+    eventSource.onmessage = function (event) {
+       // When an alert is received, update the state
+       setAlerts(prevAlerts => [...prevAlerts, event.data]);    
+    }
+  
+    // Clean up the event source when the component unmounts
+    return () => {
+      eventSource.close();
+    };
+  }, [])
+  
+
   return (
     <div className="home-page">
       <Header toggleSidebar={toggleSidebar}/>
@@ -315,6 +359,14 @@ function Dashboard() {
       <div className={`dashboard ${isSidebarOpen ? 'shifted' : ''}`} style={{ backgroundColor: '#f4f6f8' }}>
         <div className="dashboard-layout">
           {/* Left column content */}
+          {/* <div>
+            <h2>Real-time Air Quality Alerts</h2>
+            <ul>
+              {alerts.map((alert, index) => (
+                <li key={index}>{alert}</li>
+              ))}
+            </ul>
+          </div> */}
           <div className="dashboard-left">
             {/* AQI Card Summary */}
             <div className="dashboard-card-aqi-summary" style={{ backgroundColor }}>
