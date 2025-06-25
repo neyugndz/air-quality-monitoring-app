@@ -155,20 +155,20 @@ public class TelemetryController {
     /**
      * Get latest aqi data based on selected day (calculate by the LocalDateTime by subtract the end and the beginning)
      * */
-    @GetMapping("/aqi/by-month")
-    public ResponseEntity<List<Telemetry>> getAqiByMonth(
-            @AuthenticationPrincipal Users user,
-            @RequestParam("year") int year,
-            @RequestParam("month") int month
-    ) {
-        LocalDateTime start = LocalDate.of(year, month, 1).atStartOfDay();
-        LocalDateTime end = start.plusMonths(1);
-
-        List<Telemetry> telemetrys = telemetryRepository
-                .findByDeviceIdAndTimestampBetween(user.getEmail(), start, end);
-
-        return ResponseEntity.ok(telemetrys);
-    }
+//    @GetMapping("/aqi/by-month")
+//    public ResponseEntity<List<Telemetry>> getAqiByMonth(
+//            @AuthenticationPrincipal Users user,
+//            @RequestParam("year") int year,
+//            @RequestParam("month") int month
+//    ) {
+//        LocalDateTime start = LocalDate.of(year, month, 1).atStartOfDay();
+//        LocalDateTime end = start.plusMonths(1);
+//
+//        List<Telemetry> telemetrys = telemetryRepository
+//                .findByDeviceIdAndTimestampBetween(user.getEmail(), start, end);
+//
+//        return ResponseEntity.ok(telemetrys);
+//    }
 
     /**
      * Get Raw Pollutant data based on the DeviceId
@@ -371,5 +371,18 @@ public class TelemetryController {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(null);
         }
+    }
+
+    /**
+     * API endpoint to get average AQI and pollutants for a device on a specific date.
+     *
+     * @param deviceId The ID of the device.
+     * @param date The date for which to calculate averages.
+     * @return Map of average AQI and pollutant values.
+     */
+    @GetMapping("/average/{deviceId}")
+    public Map<String, Double> getAverageTelemetry(@PathVariable String deviceId, @RequestParam("date") String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        return telemetryService.calculateAverageAqiAndPollutants(deviceId, localDate);
     }
 }

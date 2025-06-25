@@ -15,7 +15,7 @@ public interface TelemetryRepository extends JpaRepository<Telemetry, Long> {
 
     List<Telemetry> findByDeviceId(String deviceId);
 
-    List<Telemetry> findByDeviceIdAndTimestampBetween(String email, LocalDateTime start, LocalDateTime end);
+    List<Telemetry> findByDeviceIdAndTimestampBetween(String deviceId, LocalDateTime start, LocalDateTime end);
 
     Optional<Telemetry> findByDeviceIdAndTimestamp(String deviceId, LocalDateTime timestamp);
 

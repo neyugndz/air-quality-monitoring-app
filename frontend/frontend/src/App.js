@@ -15,13 +15,19 @@ import Profile from "./components/profile.jsx";
 import ProtectedRoute from "./config/ProtectedRoute.js";
 import TrendAnalysisPage from "./components/trendAnalysisPage.jsx";
 import { NotificationProvider } from "./components/notificationProvider.jsx";
-import { requestPermission } from './components/push-notification.jsx';
+import { subscribeUserToPushNotifications } from './firebase';
 
 function App() {
 
   useEffect(() => {
-    // Request notification permission
-    requestPermission();
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+      // Request permission to show notifications
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          subscribeUserToPushNotifications(); 
+        }
+      });
+    }
   }, []);
 
   if ("serviceWorker" in navigator) {

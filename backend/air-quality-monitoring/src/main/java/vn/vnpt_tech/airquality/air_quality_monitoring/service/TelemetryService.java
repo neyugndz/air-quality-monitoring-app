@@ -3,7 +3,6 @@ package vn.vnpt_tech.airquality.air_quality_monitoring.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -11,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import vn.vnpt_tech.airquality.air_quality_monitoring.controller.TelemetryController;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.OneIoTResponseTelemetryLatest;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
@@ -19,14 +17,10 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.helper.AqiCalculator;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.DeviceRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.TelemetryRepository;
 
-import javax.swing.text.html.Option;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class TelemetryService {
@@ -183,9 +177,6 @@ public class TelemetryService {
         return (double) pollutedCount / telemetryData.size() * 100;
     }
 
-
-
-
     /**
      * Utility method to calculate the AQI
      * @param telemetry
@@ -210,10 +201,130 @@ public class TelemetryService {
     }
 
     /**
+     * Method to calculate average AQI and pollutant levels for a device on a given date
+     * @param deviceId ID of the device/station
+     * @param date the date to compute averages for
+     * @return a map of average values
+     */
+    public Map<String, Double> calculateAverageAqiAndPollutants(String deviceId, LocalDate date) {
+        List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndDate(deviceId, date);
+
+        if (telemetryData.isEmpty()) return Collections.emptyMap();
+
+        Map<String, Double> averages = new HashMap<>();
+        averages.put("averageAqi", calculateAverageAqi(telemetryData));
+        averages.put("averagePm25", calculateAverageField(telemetryData, "pm25"));
+        averages.put("averagePm10", calculateAverageField(telemetryData, "pm10"));
+        averages.put("averageCo", calculateAverageField(telemetryData, "co"));
+        averages.put("averageNo2", calculateAverageField(telemetryData, "no2"));
+        averages.put("averageSo2", calculateAverageField(telemetryData, "so2"));
+        averages.put("averageO3", calculateAverageField(telemetryData, "o3"));
+
+        return averages;
+    }
+
+    /**
+     * Method to calculate weekly AQI (average, highest, and lowest) for a device
+     * @param deviceId ID of the device/station
+     * @param startDate the start date for the weekly calculation
+     * @return a map containing the average AQI, highest AQI, and lowest AQI for the week
+     */
+    public Map<String, Double> calculateWeeklyAqi(String deviceId, LocalDate startDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = startDate.plusDays(6).atTime(23, 59, 59);
+
+        List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndTimestampBetween(deviceId, startDateTime, endDateTime);
+
+        if (telemetryData.isEmpty()) return Collections.emptyMap();
+
+        double totalAqi = 0;
+        double highestAqi = Double.MIN_VALUE;
+        double lowestAqi = Double.MAX_VALUE;
+
+        // Iterate through all telemetry data for the week
+        for (Telemetry telemetry : telemetryData) {
+            double aqi = telemetry.getOverallAqi();
+
+            totalAqi += aqi;
+            highestAqi = Math.max(highestAqi, aqi);
+            lowestAqi = Math.min(lowestAqi, aqi);
+        }
+
+        // Calculate the average AQI and round the values to 2 decimal places
+        double averageAqi = totalAqi / telemetryData.size();
+        averageAqi = Math.round(averageAqi * 100.0) / 100.0;
+
+        highestAqi = Math.round(highestAqi * 100.0) / 100.0;
+        lowestAqi = Math.round(lowestAqi * 100.0) / 100.0;
+
+        // Put the calculated values into the map
+        Map<String, Double> weeklyAqi = new HashMap<>();
+        weeklyAqi.put("averageAqi", averageAqi);
+        weeklyAqi.put("highestAqi", highestAqi);
+        weeklyAqi.put("lowestAqi", lowestAqi);
+
+        return weeklyAqi;
+    }
+
+    /**
+     * Method to calculate weekly pollutant averages for the selected device in the past 7 days
+     * @param deviceId ID of the device/station
+     * @param startDate the start date for the weekly calculation
+     * @return a map of average pollutant concentrations (PM2.5, PM10, CO, NO2, SO2, O3)
+     */
+    public Map<String, Double> calculateWeeklyPollutants(String deviceId, LocalDate startDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = startDate.plusDays(6).atTime(23, 59, 59);
+
+        List<Telemetry> telemetryData = telemetryRepository.findByDeviceIdAndTimestampBetween(deviceId, startDateTime, endDateTime);
+
+        if (telemetryData.isEmpty()) return Collections.emptyMap();
+
+        Map<String, Double> pollutantAverages = new HashMap<>();
+        pollutantAverages.put("averagePm25", calculateAverageField(telemetryData, "pm25"));
+        pollutantAverages.put("averagePm10", calculateAverageField(telemetryData, "pm10"));
+        pollutantAverages.put("averageCo", calculateAverageField(telemetryData, "co"));
+        pollutantAverages.put("averageNo2", calculateAverageField(telemetryData, "no2"));
+        pollutantAverages.put("averageSo2", calculateAverageField(telemetryData, "so2"));
+        pollutantAverages.put("averageO3", calculateAverageField(telemetryData, "o3"));
+
+        return pollutantAverages;
+    }
+
+
+    /**
      * Utility method to avoid casting exceptions
      */
     private Double getDouble(Map<String, Object> map, String key) {
         Object val = map.get(key);
         return val instanceof Number ? ((Number) val).doubleValue() : null;
     }
+
+    /**
+     * Utility method to calculate average value of things
+     */
+    private double calculateAverageAqi(List<Telemetry> data) {
+        return data.stream()
+                .mapToInt(Telemetry::getOverallAqi)
+                .average()
+                .orElse(0);
+    }
+
+    private double calculateAverageField(List<Telemetry> data, String field) {
+        return data.stream()
+                .mapToDouble(t -> {
+                    switch (field.toLowerCase()) {
+                        case "pm25": return Optional.ofNullable(t.getPm25()).orElse(0.0);
+                        case "pm10": return Optional.ofNullable(t.getPm10()).orElse(0.0);
+                        case "co":   return Optional.ofNullable(t.getCo()).orElse(0.0);
+                        case "no2":  return Optional.ofNullable(t.getNo2()).orElse(0.0);
+                        case "so2":  return Optional.ofNullable(t.getSo2()).orElse(0.0);
+                        case "o3":   return Optional.ofNullable(t.getO3()).orElse(0.0);
+                        default: return 0.0;
+                    }
+                })
+                .average()
+                .orElse(0);
+    }
+
 }
