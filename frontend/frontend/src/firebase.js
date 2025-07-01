@@ -1,5 +1,3 @@
-// src/firebase.js
-
 const vapidPublicKey = 'BCUBVb_m1ZHRct3pYcOoQ46hz-AjDCwvn8NgLRHKAuz7Bw0Dp_vSrYFBo9sJurre9SmHmwDrvi3XNbeCHAWrdfo';
 const vapidPrivateKey = 'UrfQAFIaqA8KFCW9ikfdPAP6bapLwjcWmGTaDUY7258'; 
 

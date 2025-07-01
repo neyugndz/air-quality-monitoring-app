@@ -1,5 +1,6 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.dto;
 
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,14 +13,16 @@ import org.springframework.web.client.RestTemplate;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Device;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Telemetry;
 
+import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeviceDTO {
+public class DeviceDTO  {
     private String deviceId;
     private String stationName;
     private Double latitude;
@@ -27,6 +30,9 @@ public class DeviceDTO {
     private String locationName;
     private String lastUpdatedDate;
     private Integer overallAqi;
+
+    // In-memory cache for geocoding results
+    private static final Map<String, String> geocodeCache = new ConcurrentHashMap<>();
 
     // Construct the desired DeviceDTO to support the display on the FE
     public DeviceDTO(Device device, Telemetry telemetry) {
@@ -57,6 +63,13 @@ public class DeviceDTO {
      * @return
      */
     public String reverseGeocode(double lat, double lon) {
+        String cacheKey = lat + "," + lon;
+
+        // Check if the location is already cached
+        if (geocodeCache.containsKey(cacheKey)) {
+            return geocodeCache.get(cacheKey);
+        }
+
         try {
             String url = String.format(
                     "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json&zoom=14&addressdetails=1&lang=en",

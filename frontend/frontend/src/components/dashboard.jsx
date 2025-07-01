@@ -91,7 +91,7 @@ function Dashboard() {
     DeviceService.index()
       .then(res => {
         setDevices(res.data);
-        
+  
         DeviceService.nearestStation()
           .then((res) => {
             setSelectedDeviceId(res.data.deviceId);
@@ -104,6 +104,7 @@ function Dashboard() {
       })
       .catch(err => console.error("Error loading devices ", err));
   }, []);
+
 
   /**
    * Load telemetry in DTO format of selected devices
@@ -125,12 +126,11 @@ function Dashboard() {
    * Load latest overall AQI, Raw Pollutant and AQI of Pollutatn data from selected devices/station
    */
   useEffect(() => {
-    if (!selectedDeviceId) 
-      return;
-
+    if (!selectedDeviceId) return;
+  
     TelemetryService.singleRawDataAndAQI(selectedDeviceId)
       .then(res => {
-        setRawData(res.data);   
+        setRawData(res.data);
         setAqi(res.data.overallAqi);
         checkCurrentAqiAlert(res.data.overallAqi);
       })
@@ -140,6 +140,7 @@ function Dashboard() {
         setRawData(null);
       });
   }, [selectedDeviceId]);
+  
 
    /**
     * Polling for current AQI based on selected device
@@ -389,16 +390,16 @@ function Dashboard() {
                       justifyContent: 'center',
                       fontSize: '40px'
                     }}>
-                    {icon}
+                    {icon || 'N/A'}
                     </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold' }}>{aqi}</div>
+                    <div style={{ fontSize: '40px', fontWeight: 'bold' }}>{aqi || 'Loading...'}</div>
                   </div>
                 </div>
 
                 {/* Right: Danger Label and Advice */}
                 <div style={{ textAlign: 'left', lineHeight: '1.4' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{category}</div>
-                  <div style={{ fontSize: '16px' }}>{advice}</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{category || 'Loading...'}</div>
+                  <div style={{ fontSize: '16px' }}>{advice || 'Loading...'}</div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,6 @@
-self.addEventListener('push', (event) => {
+this.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
+  console.log("Event data is: " + event.data);
   const title = data.title || 'Default Title';
   const options = {
       body: data.body || 'Default body text',
@@ -10,10 +11,10 @@ self.addEventListener('push', (event) => {
 
   console.log('Notification options:', options);
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(this.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', (event) => {
+this.addEventListener('notificationclick', (event) => {
   const url = event.notification.data;
   event.notification.close();
 

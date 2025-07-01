@@ -1,7 +1,8 @@
+import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { DeviceService } from '../service/deviceService';
 import { ThreeDots } from 'react-loader-spinner';
 import { UserService } from '../service/userService';
@@ -36,17 +37,29 @@ function SensorMap() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null); 
 
+  // Memoizing stationData to prevent unnecessary recalculations
+  const memoizedStationData = useMemo(() => stationData, [stationData]);
+
+  // Fetch station data and user location once on mount
   useEffect(() => {
-    DeviceService.allAqi()
-      .then(res => {
-        setStationData(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error loading Station Data for Displaying', err);
-        setStationData(null);
-        setLoading(false);
-      });
+    // Fetch station data
+    const storedStationData = localStorage.getItem('stationData');
+    if (storedStationData) {
+      setStationData(JSON.parse(storedStationData));
+      setLoading(false);
+    } else {
+      DeviceService.allAqi()
+        .then(res => {
+          setStationData(res.data);
+          localStorage.setItem('stationData', JSON.stringify(res.data)); // Cache data
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Error loading Station Data for Displaying', err);
+          setStationData(null);
+          setLoading(false);
+        });
+    }
 
     // Fetch user location
     UserService.getLocation()
@@ -57,8 +70,7 @@ function SensorMap() {
       .catch(err => {
         console.error('Error fetching user location', err);
       });
-  },[]);  
-
+  }, []);
 
   // Function to create the custom marker icon
   const createCustomIcon = (aqi) => {
@@ -90,7 +102,6 @@ function SensorMap() {
     return icon;
   };
 
-
   const createUserLocationIcon = () => {
     return L.divIcon({
       className: 'leaflet-div-icon',
@@ -119,32 +130,32 @@ function SensorMap() {
     <div>
       {/* Show loading screen if data is still being fetched */}
       {loading ? (
-    <div style={{ textAlign: 'center', marginTop: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-      <h3>Loading... Please wait.</h3>
-      <div>
-        <ThreeDots 
-          height="80" 
-          width="80" 
-          radius="9" 
-          color="#00BFFF"
-          ariaLabel="three-dots-loading" 
-          visible={true} 
-        />
-      </div>
-    </div>
+        <div style={{ textAlign: 'center', marginTop: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+          <h3>Loading... Please wait.</h3>
+          <div>
+            <ThreeDots 
+              height="80" 
+              width="80" 
+              radius="9" 
+              color="#00BFFF"
+              ariaLabel="three-dots-loading" 
+              visible={true} 
+            />
+          </div>
+        </div>
       ) : (
         // MapContainer with markers
         <MapContainer center={[21.0285, 105.8542]} zoom={13} style={{ marginTop: '-10px', height: '70vh', width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          {stationData && stationData.map((sensor, idx) => {
+          {memoizedStationData && memoizedStationData.map((sensor, idx) => {
             // Create a custom icon with the background color based on AQI
             const customIcon = createCustomIcon(sensor.overallAqi);
 
             return (
               <Marker 
-              key={idx} 
-              position={[sensor.latitude, sensor.longitude]} 
-              icon={customIcon}  
+                key={idx} 
+                position={[sensor.latitude, sensor.longitude]} 
+                icon={customIcon}  
               >
                 <Popup>
                   <b>Station Name: {sensor.stationName}</b>
@@ -152,23 +163,22 @@ function SensorMap() {
               </Marker>
             );
           })}
-              {/* Add user's location on the map */}
-              {userLocation && (
-                <Marker 
-                  position={[userLocation.lat, userLocation.lon]} 
-                  icon={createUserLocationIcon()}  
-                >
-                  <Popup>
-                    <b>Your Location</b>
-                  </Popup>
-                </Marker>
-              )}
-
-
+          {/* Add user's location on the map */}
+          {userLocation && (
+            <Marker 
+              position={[userLocation.lat, userLocation.lon]} 
+              icon={createUserLocationIcon()}  
+            >
+              <Popup>
+                <b>Your Location</b>
+              </Popup>
+            </Marker>
+          )}
         </MapContainer>
       )}
     </div>
   );
 }
 
-export default SensorMap;
+// Use React.memo to avoid unnecessary re-renders
+export default React.memo(SensorMap);

@@ -288,12 +288,12 @@ public class NotificationService {
         StringBuilder healthAlerts = new StringBuilder();
 
         // Define the recommended values for pollutants
-        double recommendedPm25 = 25.0; // µg/m³
-        double recommendedPm10 = 50.0; // µg/m³
-        double recommendedCo = 9.0; // ppm
-        double recommendedNo2 = 0.040; // ppm
-        double recommendedSo2 = 0.75; // ppm
-        double recommendedO3 = 0.070; // ppm
+        double recommendedPm25 = 15.0; // µg/m³
+        double recommendedPm10 = 45.0; // µg/m³
+        double recommendedCo = 0.35;  // ppm
+        double recommendedNo2 = 0.025; // ppm
+        double recommendedSo2 = 0.04; // ppm
+        double recommendedO3 = 0.100; // ppm
 
         // PM2.5
         double pm25 = dailyPollutants.get("averagePm25");
@@ -457,12 +457,13 @@ public class NotificationService {
         StringBuilder healthAlerts = new StringBuilder();
 
         // Define the recommended values for pollutants
-        double recommendedPm25 = 25.0;
-        double recommendedPm10 = 50.0;
-        double recommendedCo = 9.0;
-        double recommendedNo2 = 0.040;
-        double recommendedSo2 = 0.75;
-        double recommendedO3 = 0.070;
+        double recommendedPm25 = 15.0; // µg/m³
+        double recommendedPm10 = 45.0; // µg/m³
+        double recommendedCo = 0.35;  // ppm
+        double recommendedNo2 = 0.025; // ppm
+        double recommendedSo2 = 0.04; // ppm
+        double recommendedO3 = 0.100; // ppm
+
 
         String mostImpactfulPollutant = getMostImpactfulPollutant(weeklyPollutants);
         healthAlerts.append("\nThe pollutant with the most impact on the AQI this week was: ").append(mostImpactfulPollutant).append("\n");

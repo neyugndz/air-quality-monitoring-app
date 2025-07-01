@@ -90,13 +90,13 @@ public class TelemetryController {
                             .deviceId(device.getDeviceId()) // Link to device's deviceId
                             .latitude(device.getLatitude()) // Use device's latitude
                             .longitude(device.getLongitude()) // Use device's longitude
-                            .pm25(round(random.nextDouble() * (85 - 20) + 20, 1)) // PM2.5 range: 20 to 85
-                            .pm10(round(random.nextDouble() * (100 - 30) + 30, 1)) // PM10 range: 30 to 100
-                            .co(round(random.nextDouble() * (3.0 - 0.1) + 0.1, 3)) // CO range: 0.1 to 3.0
-                            .so2(round(random.nextDouble() * (0.05 - 0.002) + 0.002, 4)) // SO2 range: 0.002 to 0.05
-                            .o3(round(random.nextDouble() * (0.08 - 0.02) + 0.02, 3)) // O3 range: 0.02 to 0.08
-                            .no2(round(random.nextDouble() * (0.15 - 0.01) + 0.01, 3)) // NO2 range: 0.01 to 0.15
-                            .timestamp(timestamp) // Simulate timestamp for each 15-minute interval
+                            .pm25(round(random.nextDouble() * (50 - 5) + 5  , 1))
+                            .pm10(round(random.nextDouble() * (70 - 10) + 10, 1))
+                            .co(round(random.nextDouble() * (2.0 - 0.1) + 0.1, 3))
+                            .so2(round(random.nextDouble() * (0.05 - 0.002) + 0.002, 4))
+                            .o3(round(random.nextDouble() * (0.08 - 0.01) + 0.01, 3))
+                            .no2(round(random.nextDouble() * (0.15 - 0.01) + 0.01, 3))
+                            .timestamp(timestamp)
                             .build();
 
                     telemetryService.applyAqiCalculations(telemetry); // Apply AQI calculations if needed

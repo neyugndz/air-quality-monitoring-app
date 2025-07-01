@@ -2,6 +2,7 @@ package vn.vnpt_tech.airquality.air_quality_monitoring.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -81,6 +82,7 @@ public class DeviceController {
     }
 
     @GetMapping
+//    @Cacheable(value = "allDevicesCache")
     public List<Device> listAllDevices() {
         return deviceRepository.findAll();
     }
@@ -90,6 +92,7 @@ public class DeviceController {
      * Return selected devices with latest telemetry in DTO format for FE
      */
     @GetMapping("/{deviceId}/with-latest-telemetry")
+//    @Cacheable(value = "deviceTelemetryCache", key = "#deviceId")
     public ResponseEntity<DeviceDTO> getDevicesWithLatestTelemetry(@PathVariable String deviceId) {
         Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
         if (deviceOpt.isEmpty()) {
@@ -108,6 +111,7 @@ public class DeviceController {
      * Endpoint to return All Device Information for Map Marker Set up
      */
     @GetMapping("/location-aqi")
+//    @Cacheable(value = "deviceAqiCache")
     public ResponseEntity<List<DeviceDTO>> getAllDeviceWithAqi() {
         List<Device> devices = deviceService.getAllDevices();
         List<DeviceDTO> deviceDTOs = new ArrayList<>();
@@ -129,6 +133,7 @@ public class DeviceController {
      * @return Nearest Station with its telemetry data
      */
     @GetMapping("/nearest-station")
+//    @Cacheable(value = "nearestStationCache", key = "#user.latitude + '-' + #user.longitude")
     public ResponseEntity<DeviceDTO> getNearestStation(@AuthenticationPrincipal Users user) {
         List<Device> devices = deviceRepository.findAll();
         Device nearestDevice = null;
