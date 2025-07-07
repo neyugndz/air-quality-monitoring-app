@@ -1,9 +1,6 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.entity;
 
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import nl.martijndwars.webpush.Subscription;
 
@@ -15,6 +12,7 @@ import nl.martijndwars.webpush.Subscription;
 public class PushSubscription {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String endpoint;

@@ -8,5 +8,5 @@ export const TelemetryService = {
     compareDataOverTimeRange: (id1, id2, startDate, endDate) => get(`/telemetry/compare/${id1}/${id2}?startDate=${startDate}&endDate=${endDate}`),
     // postForecastData: (deviceId, startTime, horizon) => post(`/forecast`, deviceId, startTime, horizon ),
     postForecastData: (deviceId, startTime, horizon) =>  post('/forecast', {deviceId, startTime, horizon}),
-    
+    getCachedTelemetry: (id) => get(`/cache/telemetry/${id}`),   
 }

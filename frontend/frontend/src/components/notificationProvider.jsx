@@ -49,6 +49,9 @@ export const NotificationProvider = ({ children}) => {
 
     //  Check current AQI
     const checkCurrentAqiAlert = (currentAqi) => {
+        // console.log("Current Preferences:", preferences);
+        // console.log("Current Notification Frequency:", preferences?.notificationFrequency);
+
         if (
             preferences?.showPollutionAlerts &&
             preferences?.notificationFrequency === "Immediate" &&
@@ -56,11 +59,14 @@ export const NotificationProvider = ({ children}) => {
         ) {
             const message = `Current AQI (${currentAqi}) exceeds your threshold (${preferences.aqiThreshold}). Please take precautions.`;
             showNotification(message, 'error');
+            if (preferences?.pushAlerts ) {
+                sendPushNotification('Air Quality Alert', message, "http://localhost:3000/home");
+            }
         }
     };
 
      // Function to check for AQI threshold exceeding and show notification
-    const checkForHealthAlerts = (forecastValues) => {
+    const checkForHealthAlerts = (forecastValues, stationName = "Unknown Station") => {
         if (!preferences) return;
 
         if (!Array.isArray(forecastValues)) {
@@ -83,11 +89,37 @@ export const NotificationProvider = ({ children}) => {
             preferences?.showPollutionAlerts &&
             preferences?.notificationFrequency === "Immediate"
         ) {
-            const message = `AQI is forecasted to exceed ${preferences?.aqiThreshold} ${timeRangeMessage}. Please take necessary precautions.`;
+            const message = `AQI is forecasted to exceed ${preferences?.aqiThreshold} ${timeRangeMessage} at ${stationName}. Please take necessary precautions.`;
             showNotification(message, 'error');
+            
+            if (preferences?.pushAlerts) {  
+                sendPushNotification('Air Quality Forecast Alert', message, "http://localhost:3000/home");
+            }   
         }
     };
 
+    const sendPushNotification = (title, body, url) => {
+        fetch(`${process.env.REACT_APP_API_URL}/notifications/send-notification`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                body: body,
+                url: url || "http://localhost:3000/home",
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Failed to send push notification');
+            }
+        })
+        .catch(err => {
+            console.error('Push notification error:', err);
+        });
+    };
+    
     // Listening to real-time data using SSE (Server-Sent Events)
     useEffect(() => {
         if (!preferences) return;
@@ -136,7 +168,9 @@ export const NotificationProvider = ({ children}) => {
     
                                 if (Array.isArray(parsedForecast.forecast)) {
                                     setForecastValues(parsedForecast.forecast);  
-                                    checkForHealthAlerts(parsedForecast.forecast); 
+
+                                    const stationName = parsedForecast.station || "Unknown Station";
+                                    checkForHealthAlerts(parsedForecast.forecast, stationName); 
                                 } else {
                                     console.error("Forecast data is not in expected array format.");
                                 }

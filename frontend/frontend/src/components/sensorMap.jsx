@@ -40,26 +40,53 @@ function SensorMap() {
   // Memoizing stationData to prevent unnecessary recalculations
   const memoizedStationData = useMemo(() => stationData, [stationData]);
 
+  const STATION_DATA_KEY = 'stationData';
+  const STATION_TIMESTAMP_KEY = 'stationDataTimestamp';
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in ms
+
+  const fetchStationData = () => {
+    setLoading(true);
+    DeviceService.allAqi()
+      .then(res => {
+        setStationData(res.data);
+        localStorage.setItem(STATION_DATA_KEY, JSON.stringify(res.data));
+        localStorage.setItem(STATION_TIMESTAMP_KEY, Date.now().toString());
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error loading Station Data for Displaying', err);
+        setStationData(null);
+        setLoading(false);
+      });
+  };
+
   // Fetch station data and user location once on mount
   useEffect(() => {
-    // Fetch station data
-    const storedStationData = localStorage.getItem('stationData');
-    if (storedStationData) {
-      setStationData(JSON.parse(storedStationData));
+
+    const storedData = localStorage.getItem(STATION_DATA_KEY);
+    const storedTimestamp = localStorage.getItem(STATION_TIMESTAMP_KEY);
+    const now = Date.now();
+
+    if (storedData && storedTimestamp && now - parseInt(storedTimestamp) < CACHE_DURATION) {
+      setStationData(JSON.parse(storedData));
       setLoading(false);
     } else {
-      DeviceService.allAqi()
-        .then(res => {
-          setStationData(res.data);
-          localStorage.setItem('stationData', JSON.stringify(res.data)); // Cache data
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Error loading Station Data for Displaying', err);
-          setStationData(null);
-          setLoading(false);
-        });
+      localStorage.removeItem(STATION_DATA_KEY);
+      localStorage.removeItem(STATION_TIMESTAMP_KEY);
+      fetchStationData();
     }
+    //   DeviceService.allAqi()
+    //     .then(res => {
+    //       setStationData(res.data);
+    //       localStorage.setItem('stationData', JSON.stringify(res.data)); // Cache data
+    //       setLoading(false);
+    //     })
+    //     .catch(err => {
+    //       console.error('Error loading Station Data for Displaying', err);
+    //       setStationData(null);
+    //       setLoading(false);
+    //     });
+    // }
 
     // Fetch user location
     UserService.getLocation()
@@ -70,6 +97,12 @@ function SensorMap() {
       .catch(err => {
         console.error('Error fetching user location', err);
       });
+
+    const intervalId = setInterval(() => {
+      fetchStationData();
+    }, CACHE_DURATION);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Function to create the custom marker icon

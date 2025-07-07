@@ -4,10 +4,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.DeviceDTO;
 import vn.vnpt_tech.airquality.air_quality_monitoring.dto.ForecastRequest;
@@ -26,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api")
 public class SseController {
 
@@ -72,11 +70,13 @@ public class SseController {
         forecastRequest.setStartTime(startTime);
         forecastRequest.setHorizon(horizon);
 
+        String stationName = nearestDevice.getStationName() != null ? nearestDevice.getStationName() : "Unknown Station";
+
         // Get the forecast data
         List<Double> forecast = forecastService.getForecast(forecastRequest);
 
         // Stream the forecast values as part of the message
-        String forecastMessage = "{\"forecast\": " + forecast.toString() + "}";
+        String forecastMessage = String.format("{\"forecast\": %s, \"station\": \"%s\"}", forecast.toString(), stationName);
         // Send the data as valid SSE message
         out.write((forecastMessage).getBytes(StandardCharsets.UTF_8));
         out.flush();

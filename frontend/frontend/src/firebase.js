@@ -4,14 +4,19 @@ const vapidPrivateKey = 'UrfQAFIaqA8KFCW9ikfdPAP6bapLwjcWmGTaDUY7258';
 export const subscribeUserToPushNotifications = async () => {
     try {
         const registration = await navigator.serviceWorker.ready;
-
-        // Attempt to subscribe using the PushManager
+        
+        const existingRegistration = await registration.pushManager.getSubscription();
+        if (existingRegistration) {
+            // console.log("User is already subscribed: ", existingRegistration);
+            return;
+        }
+        
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true, // User should be able to see notifications
             applicationServerKey: urlB64ToUint8Array(vapidPublicKey) // Make sure this key is correct
         });
 
-        console.log('Subscription object:', subscription);
+        // console.log('Subscription object:', subscription);
 
         // Send the subscription to the backend
         await fetch('http://localhost:8080/api/notifications/register', {

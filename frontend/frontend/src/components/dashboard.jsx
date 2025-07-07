@@ -73,7 +73,11 @@ function Dashboard() {
   const [date, setDate] = useState('');
 
   // Date for viewing the Polluted Percentage
-  const [selectedDate, setSelectedDate] = useState(''); 
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  
   const [pollutedTimePercentage, setPollutedTimePercentage] = useState(null);
   const [dataRows, setDataRows] = useState([]); 
   const { checkCurrentAqiAlert } = useNotification();
@@ -112,8 +116,10 @@ function Dashboard() {
   useEffect(() => {
     if (!selectedDeviceId) 
       return;
-    DeviceService.single(selectedDeviceId)
+    // DeviceService.single(selectedDeviceId)
+    DeviceService.getCachedDevice(selectedDeviceId)
       .then(res => {
+        console.log(res.data);
         setDeviceData(res.data);
       })
       .catch(err => {
@@ -128,7 +134,8 @@ function Dashboard() {
   useEffect(() => {
     if (!selectedDeviceId) return;
   
-    TelemetryService.singleRawDataAndAQI(selectedDeviceId)
+    // TelemetryService.singleRawDataAndAQI(selectedDeviceId)
+    TelemetryService.getCachedTelemetry(selectedDeviceId)
       .then(res => {
         setRawData(res.data);
         setAqi(res.data.overallAqi);
@@ -194,7 +201,7 @@ function Dashboard() {
     UserService.singlePreferences()
       .then(resp => {
         setPreferences(resp.data);
-        console.log(resp.data);
+        // console.log(resp.data);
       })
       .catch(err => {
           console.error('Error fetching users prerfereces:', err);

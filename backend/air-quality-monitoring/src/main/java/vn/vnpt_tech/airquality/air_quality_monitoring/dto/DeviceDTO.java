@@ -53,7 +53,6 @@ public class DeviceDTO  {
         } else {
             this.lastUpdatedDate = "N/A";
         }
-
     }
 
     /**

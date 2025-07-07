@@ -33,6 +33,9 @@ public class TelemetryService {
     @Autowired
     private DeviceRepository deviceRepository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Scheduled(fixedRate = 15 * 60 * 1000) // 15 mins
     public void fetchHistoricalTelemetryAllDevices() {
         List<Device> devices = deviceRepository.findAll();
@@ -64,12 +67,11 @@ public class TelemetryService {
             );
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> root = mapper.readValue(response.getBody(), new TypeReference<>() {});
+                Map<String, Object> root = objectMapper.readValue(response.getBody(), new TypeReference<>() {});
                 List<Map<String, Object>> telemetryList = (List<Map<String, Object>>) root.get("contentInstanceList");
 
                 for (Map<String, Object> record : telemetryList) {
-                    Map<String, Object> content = new ObjectMapper().readValue(
+                    Map<String, Object> content = objectMapper.readValue(
                             record.get("content").toString(), new TypeReference<>() {}
                     );
 
@@ -122,9 +124,8 @@ public class TelemetryService {
             OneIoTResponseTelemetryLatest oneIoT = response.getBody();
 
             if (oneIoT.getErrorCode() == 0) {
-                ObjectMapper mapper = new ObjectMapper();
                 try {
-                    Map<String, Object> contentMap = mapper.readValue(oneIoT.getContent(), new TypeReference<>() {});
+                    Map<String, Object> contentMap = objectMapper.readValue(oneIoT.getContent(), new TypeReference<>() {});
                     String timestampStr = (String) contentMap.get("timestamp");
                     LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 

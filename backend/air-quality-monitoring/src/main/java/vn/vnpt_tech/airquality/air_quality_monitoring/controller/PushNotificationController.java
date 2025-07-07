@@ -2,6 +2,7 @@ package vn.vnpt_tech.airquality.air_quality_monitoring.controller;
 
 import nl.martijndwars.webpush.Subscription;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.vnpt_tech.airquality.air_quality_monitoring.entity.PushSubscription;
 import vn.vnpt_tech.airquality.air_quality_monitoring.repository.PushSubscriptionRepository;
 import vn.vnpt_tech.airquality.air_quality_monitoring.service.PushNotificationService;
+
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -31,20 +34,22 @@ public class PushNotificationController {
         pushSubscriptionRepository.save(pushSubscription);
 
         // For demo purposes, send a test notification
-        pushNotificationService.sendPushNotification(subscription, "Test: AQI level is high! Take precautions.");
+//        pushNotificationService.sendPushNotification(subscription, "Test: AQI level is high! Take precautions.");
     }
+   // Endpoint to trigger a notification (e.g., when AQI exceeds a threshold)
+   @PostMapping("/send-notification")
+   public ResponseEntity<String> sendNotification(@RequestBody String message) {
+       CompletableFuture.runAsync(() -> {
+           pushSubscriptionRepository.findAll().forEach(subscription -> {
+               Subscription webPushSubscription = new Subscription(
+                       subscription.getEndpoint(),
+                       new Subscription.Keys(subscription.getKeys().getP256dh(), subscription.getKeys().getAuth())
+               );
+               pushNotificationService.sendPushNotification(webPushSubscription, message);
+           });
+       });
 
-    // Endpoint to trigger a notification (e.g., when AQI exceeds a threshold)
-    @PostMapping("/send-notification")
-    public void sendNotification(@RequestBody String message) {
-        // Fetch all subscriptions from the database
-        pushSubscriptionRepository.findAll().forEach(subscription -> {
-            // Convert the PushSubscription object to a Subscription (web-push format)
-            Subscription webPushSubscription = new Subscription(subscription.getEndpoint(),
-                    new Subscription.Keys(subscription.getKeys().getP256dh(), subscription.getKeys().getAuth()));
+       return ResponseEntity.ok("Notification processing started");
+   }
 
-            // Send the notification to the subscription
-            pushNotificationService.sendPushNotification(webPushSubscription, message);
-        });
-    }
 }

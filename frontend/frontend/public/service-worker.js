@@ -4,8 +4,8 @@ this.addEventListener('push', (event) => {
   const title = data.title || 'Default Title';
   const options = {
       body: data.body || 'Default body text',
-      icon: '/icon.png', // Notification icon
-      badge: '/badge.png', // Optional: notification badge
+      icon: './images/VNPT_Logo.svg.png', // Notification icon
+      badge: './images/VNPT_Logo.svg.png', // Optional: notification badge
       data: "http://localhost:3000/home", 
   };
 
