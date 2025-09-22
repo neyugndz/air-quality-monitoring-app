@@ -16,6 +16,7 @@ import ProtectedRoute from "./config/ProtectedRoute.js";
 import TrendAnalysisPage from "./components/trendAnalysisPage.jsx";
 import { NotificationProvider } from "./components/notificationProvider.jsx";
 import { subscribeUserToPushNotifications } from './firebase';
+import ReportPage from "./components/reportPage.jsx";
 
 function App() {
 
@@ -65,6 +66,10 @@ function App() {
           <Route
             path="/trend-analysis"
             element={<ProtectedRoute element={<TrendAnalysisPage />} />}
+          />
+          <Route 
+            path="/report"
+            element={<ProtectedRoute element={<ReportPage />} />}
           />
           <Route
             path="/forecast"

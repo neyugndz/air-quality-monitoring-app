@@ -52,6 +52,9 @@ function Dashboard() {
   // Query Table Management
   const [applied, setApplied] = useState(false);
   const [pollutants, setPollutants] = useState([
+    { key: 'temperature', label: 'Temperature (°C)' },
+    { key: 'pressure', label: 'Pressure (%)' },
+    { key: 'humidity', label: 'Humidity (Pa)' },
     { key: 'co', label: 'CO (ppm)' },
     { key: 'no2', label: 'NO2 (ppm)' },
     { key: 'so2', label: 'SO2 (ppm)' },
@@ -116,8 +119,8 @@ function Dashboard() {
   useEffect(() => {
     if (!selectedDeviceId) 
       return;
-    // DeviceService.single(selectedDeviceId)
-    DeviceService.getCachedDevice(selectedDeviceId)
+    DeviceService.single(selectedDeviceId)
+    // DeviceService.getCachedDevice(selectedDeviceId)
       .then(res => {
         console.log(res.data);
         setDeviceData(res.data);
@@ -134,8 +137,8 @@ function Dashboard() {
   useEffect(() => {
     if (!selectedDeviceId) return;
   
-    // TelemetryService.singleRawDataAndAQI(selectedDeviceId)
-    TelemetryService.getCachedTelemetry(selectedDeviceId)
+    TelemetryService.singleRawDataAndAQI(selectedDeviceId)
+    // TelemetryService.getCachedTelemetry(selectedDeviceId)
       .then(res => {
         setRawData(res.data);
         setAqi(res.data.overallAqi);
@@ -355,6 +358,7 @@ function Dashboard() {
           <li><Link to="/trend-analysis">
             <i className="fas fa-chart-line"></i> Trend Analysis
             </Link></li>
+          <li><Link to="/report"><i className="fas fa-file-export"></i> Custom Report</Link></li>
           <li><Link to="/health-recommendations">
             <i className="fas fa-heart"></i> Health Recommendation
             </Link></li>
@@ -453,6 +457,12 @@ function Dashboard() {
             <div className="raw-data-summary">
               <div className="pollutant-value-container">
                 <div className="pollutant-value">
+                  <div className="pollutant">Temperature</div>
+                  <div className="pollutant">
+                    {rawData ? `${rawData.temperature}°C` : 'Loading...'}
+                  </div>
+                </div>
+                <div className="pollutant-value">
                   <div className="pollutant">CO</div>
                   <div className="pollutant">
                     {showAqi ? (rawData ? `${rawData.aqiCo}` : 'Loading...') : (rawData ? `${rawData.co} ppm` : 'Loading...')}
@@ -467,6 +477,12 @@ function Dashboard() {
               </div>
               <div className="pollutant-value-container">
                 <div className="pollutant-value">
+                  <div className="pollutant">Humidity</div>
+                  <div className="pollutant">
+                    {rawData ? `${rawData.humidity}%` : 'Loading...'}
+                  </div>
+                </div>
+                <div className="pollutant-value">
                   <div className="pollutant">PM2.5</div>
                   <div className="pollutant">
                     {showAqi ? (rawData ? `${rawData.aqiPm25}` : 'Loading...') : (rawData ? `${rawData.pm25} µg/m³` : 'Loading...')}
@@ -480,6 +496,12 @@ function Dashboard() {
                 </div>
               </div>
               <div className="pollutant-value-container">
+                <div className="pollutant-value">
+                  <div className="pollutant">Pressure</div>
+                  <div className="pollutant">
+                    {rawData ? `${rawData.pressure} PA` : 'Loading...'}
+                  </div>
+                </div>
                 <div className="pollutant-value">
                   <div className="pollutant">O3</div>
                   <div className="pollutant">

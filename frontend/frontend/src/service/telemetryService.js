@@ -7,6 +7,12 @@ export const TelemetryService = {
     getDataOverTimeRange: (id, startDate, endDate) => get(`/telemetry/historical-range/${id}?startDate=${startDate}&endDate=${endDate}`),
     compareDataOverTimeRange: (id1, id2, startDate, endDate) => get(`/telemetry/compare/${id1}/${id2}?startDate=${startDate}&endDate=${endDate}`),
     // postForecastData: (deviceId, startTime, horizon) => post(`/forecast`, deviceId, startTime, horizon ),
-    postForecastData: (deviceId, startTime, horizon) =>  post('/forecast', {deviceId, startTime, horizon}),
+    postForecastData: (deviceId, startTime, horizon, selectedPollutant) => post('/forecast', {deviceId, startTime, horizon, selectedPollutant}),
     getCachedTelemetry: (id) => get(`/cache/telemetry/${id}`),   
+    getReportData: (deviceIds, pollutants, startDate, endDate) => {
+        // Chuyển đổi mảng thành chuỗi để truyền qua URL
+        const deviceIdsStr = deviceIds.join(',');
+        const pollutantsStr = pollutants.join(',');
+        return get(`/telemetry/report?deviceIds=${deviceIdsStr}&pollutants=${pollutantsStr}&startDate=${startDate}&endDate=${endDate}`);
+    }
 }
