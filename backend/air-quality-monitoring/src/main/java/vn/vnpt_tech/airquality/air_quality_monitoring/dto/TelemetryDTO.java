@@ -18,5 +18,6 @@ public class TelemetryDTO {
     private Double so2;
     private Double no2;
     private Double o3;
+    private Double temperature, pressure, humidity;
     private Integer overallAqi;
 }

@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
@@ -73,7 +74,7 @@ public class SseController {
         String stationName = nearestDevice.getStationName() != null ? nearestDevice.getStationName() : "Unknown Station";
 
         // Get the forecast data
-        List<Double> forecast = forecastService.getForecast(forecastRequest);
+        Map<String, List<Double>> forecast = forecastService.getForecast(forecastRequest);
 
         // Stream the forecast values as part of the message
         String forecastMessage = String.format("{\"forecast\": %s, \"station\": \"%s\"}", forecast.toString(), stationName);

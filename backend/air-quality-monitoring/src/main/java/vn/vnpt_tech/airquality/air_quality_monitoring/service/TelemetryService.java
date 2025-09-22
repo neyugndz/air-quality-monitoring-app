@@ -2,6 +2,8 @@ package vn.vnpt_tech.airquality.air_quality_monitoring.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,9 +23,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TelemetryService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TelemetryService.class);
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -36,11 +42,59 @@ public class TelemetryService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Scheduled(fixedRate = 15 * 60 * 1000) // 15 mins
-    public void fetchHistoricalTelemetryAllDevices() {
-        List<Device> devices = deviceRepository.findAll();
-        for (Device device : devices) {
-            fetchHistoricalTelemetry(device.getDeviceId(), 20);
+//    @Scheduled(fixedRate = 15 * 60 * 1000) // 15 mins
+//    public void fetchHistoricalTelemetryAllDevices() {
+//        List<Device> devices = deviceRepository.findAll();
+//        for (Device device : devices) {
+//            fetchHistoricalTelemetry(device.getDeviceId(), 20);
+//        }
+//    }
+
+    /**
+     * Method to process and save data from MQTT broker.
+     * Apply the strategy to save the raw data and give null value for missing values
+     * @param deviceId
+     * @param telemetryData // JSON body of response telemetry data
+     */
+    public void processAndSaveTelemetryFromMqtt(String deviceId, Map<String, Object> telemetryData ) {
+        String timestampStr = (String) telemetryData.get("timestamp");
+        if (timestampStr == null || timestampStr.trim().isEmpty()) {
+            logger.warn("Received MQTT data for device {} with a missing timestamp. Skipping record.", deviceId);
+            return;
+        }
+
+        try {
+            LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            if (telemetryRepository.findByDeviceIdAndTimestamp(deviceId, timestamp).isPresent()) {
+                logger.debug("Telemetry record for device {} at {} already exists. Skipping.", deviceId, timestamp);
+                return;
+            }
+
+            Telemetry telemetry = new Telemetry();
+            telemetry.setDeviceId(deviceId);
+            telemetry.setTimestamp(timestamp);
+
+            // Auto apply the null value if missing
+            telemetry.setCo(getDouble(telemetryData, "CO"));
+            telemetry.setSo2(getDouble(telemetryData, "SO2"));
+            telemetry.setNo2(getDouble(telemetryData, "NO2"));
+            telemetry.setO3(getDouble(telemetryData, "O3"));
+            telemetry.setPm25(getDouble(telemetryData, "PM2_5"));
+            telemetry.setPm10(getDouble(telemetryData, "PM10"));
+            telemetry.setTemperature(getDouble(telemetryData, "temperature"));
+            telemetry.setPressure(getDouble(telemetryData, "pressure"));
+            telemetry.setHumidity(getDouble(telemetryData, "humidity"));
+            telemetry.setLatitude(getDouble(telemetryData, "latitude"));
+            telemetry.setLongitude(getDouble(telemetryData, "longitude"));
+
+            // Calcuate the AQI (deal with null value here)
+            applyAqiCalculations(telemetry);
+            telemetryRepository.save(telemetry);
+            logger.info("✅ Successfully processed and saved MQTT telemetry for device: {}", deviceId);
+
+        } catch (Exception e) {
+            logger.error("❌ Error processing MQTT telemetry data for device {}: {}", deviceId, e.getMessage(), e);
         }
     }
 
@@ -183,13 +237,15 @@ public class TelemetryService {
      * @param telemetry
      */
     public void applyAqiCalculations(Telemetry telemetry) {
-        int aqiPm25 = AqiCalculator.aqiPm25(telemetry.getPm25());
-        int aqiPm10 = AqiCalculator.aqiPm10(telemetry.getPm10());
-        int aqiCo   = AqiCalculator.aqiCo(telemetry.getCo());
-        int aqiSo2  = AqiCalculator.aqiSo2(telemetry.getSo2());
-        int aqiNo2  = AqiCalculator.aqiNo2(telemetry.getNo2());
-        int aqiO3   = AqiCalculator.aqiO3(telemetry.getO3());
+        // Wrap each value with a default if it's null
+        int aqiPm25 = AqiCalculator.aqiPm25(Optional.ofNullable(telemetry.getPm25()).orElse(0.0));
+        int aqiPm10 = AqiCalculator.aqiPm10(Optional.ofNullable(telemetry.getPm10()).orElse(0.0));
+        int aqiCo   = AqiCalculator.aqiCo(Optional.ofNullable(telemetry.getCo()).orElse(0.0));
+        int aqiSo2  = AqiCalculator.aqiSo2(Optional.ofNullable(telemetry.getSo2()).orElse(0.0));
+        int aqiNo2  = AqiCalculator.aqiNo2(Optional.ofNullable(telemetry.getNo2()).orElse(0.0));
+        int aqiO3   = AqiCalculator.aqiO3(Optional.ofNullable(telemetry.getO3()).orElse(0.0));
 
+        // Then, set the AQI values
         telemetry.setAqiPm25(aqiPm25);
         telemetry.setAqiPm10(aqiPm10);
         telemetry.setAqiCo(aqiCo);
@@ -197,7 +253,13 @@ public class TelemetryService {
         telemetry.setAqiNo2(aqiNo2);
         telemetry.setAqiO3(aqiO3);
 
-        int overall = Collections.max(List.of(aqiPm25, aqiPm10, aqiCo, aqiSo2, aqiNo2, aqiO3));
+        // Filter out the 0 values before finding the maximum
+        int overall = List.of(aqiPm25, aqiPm10, aqiCo, aqiSo2, aqiNo2, aqiO3)
+                .stream()
+                .filter(aqi -> aqi > 0)
+                .max(Integer::compareTo)
+                .orElse(0); // If all values are 0, the overall AQI is 0
+
         telemetry.setOverallAqi(overall);
     }
 
@@ -292,6 +354,76 @@ public class TelemetryService {
         return pollutantAverages;
     }
 
+    /**
+     * Generates custom report data including chart data and statistics.
+     *
+     * @param deviceIds The list of device IDs.
+     * @param pollutants The list of pollutants.
+     * @param startDate The start date.
+     * @param endDate The end date.
+     * @return A map containing chart data and statistics.
+     */
+    public Map<String, Object> generateReportData(
+            List<String> deviceIds, List<String> pollutants, LocalDate startDate, LocalDate endDate) {
+
+        Map<String, List<Telemetry>> rawDataByDevice = new HashMap<>();
+        Map<String, Map<String, Map<String, Double>>> statistics = new HashMap<>();
+
+        for (String deviceId : deviceIds) {
+            List<Telemetry> telemetryList = telemetryRepository.findByDeviceIdAndTimestampBetween(
+                    deviceId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
+            rawDataByDevice.put(deviceId, telemetryList);
+        }
+
+        Map<String, List<Map<String, Object>>> chartData = new HashMap<>();
+
+        for (Map.Entry<String, List<Telemetry>> entry : rawDataByDevice.entrySet()) {
+            String deviceId = entry.getKey();
+            List<Telemetry> telemetryList = entry.getValue();
+
+            List<Map<String, Object>> deviceChartData = telemetryList.stream()
+                    .map(telemetry -> {
+                        Map<String, Object> dataPoint = new HashMap<>();
+                        dataPoint.put("formattedDate", telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                        for (String pollutant : pollutants) {
+                            switch (pollutant.toLowerCase()) {
+                                case "pm25": dataPoint.put(pollutant, telemetry.getPm25()); break;
+                                case "pm10": dataPoint.put(pollutant, telemetry.getPm10()); break;
+                                case "co": dataPoint.put(pollutant, telemetry.getCo()); break;
+                                case "so2": dataPoint.put(pollutant, telemetry.getSo2()); break;
+                                case "no2": dataPoint.put(pollutant, telemetry.getNo2()); break;
+                                case "o3": dataPoint.put(pollutant, telemetry.getO3()); break;
+                                case "temperature": dataPoint.put(pollutant, telemetry.getTemperature()); break;
+                                case "humidity": dataPoint.put(pollutant, telemetry.getHumidity()); break;
+                                case "pressure": dataPoint.put(pollutant, telemetry.getPressure()); break;
+                            }
+                        }
+                        return dataPoint;
+                    })
+                    .collect(Collectors.toList());
+
+            chartData.put(deviceId, deviceChartData);
+
+            for (String pollutant : pollutants) {
+                // Calculate your average, min, and max values first
+                double average = calculateAverageField(telemetryList, pollutant);
+                double min = calculateMinField(telemetryList, pollutant);
+                double max = calculateMaxField(telemetryList, pollutant);
+
+                Map<String, Double> statsMap = new HashMap<>();
+                statsMap.put("average", average);
+                statsMap.put("min", min);
+                statsMap.put("max", max);
+                statistics.computeIfAbsent(pollutant, k -> new HashMap<>()).put(deviceId, statsMap);
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("chartData", chartData);
+        result.put("statistics", statistics);
+
+        return result;
+    }
 
     /**
      * Utility method to avoid casting exceptions
@@ -328,4 +460,49 @@ public class TelemetryService {
                 .orElse(0);
     }
 
+    private double calculateMinField(List<Telemetry> data, String field) {
+        if (data.isEmpty()) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return data.stream()
+                .mapToDouble(t -> {
+                    switch (field.toLowerCase()) {
+                        case "pm25": return Optional.ofNullable(t.getPm25()).orElse(Double.MAX_VALUE);
+                        case "pm10": return Optional.ofNullable(t.getPm10()).orElse(Double.MAX_VALUE);
+                        case "co": return Optional.ofNullable(t.getCo()).orElse(Double.MAX_VALUE);
+                        case "no2": return Optional.ofNullable(t.getNo2()).orElse(Double.MAX_VALUE);
+                        case "so2": return Optional.ofNullable(t.getSo2()).orElse(Double.MAX_VALUE);
+                        case "o3": return Optional.ofNullable(t.getO3()).orElse(Double.MAX_VALUE);
+                        case "temperature": return Optional.ofNullable(t.getTemperature()).orElse(Double.MAX_VALUE);
+                        case "humidity": return Optional.ofNullable(t.getHumidity()).orElse(Double.MAX_VALUE);
+                        case "pressure": return Optional.ofNullable(t.getPressure()).orElse(Double.MAX_VALUE);
+                        default: return Double.MAX_VALUE;
+                    }
+                })
+                .min()
+                .orElse(0.0);
+    }
+
+    private double calculateMaxField(List<Telemetry> data, String field) {
+        if (data.isEmpty()) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        return data.stream()
+                .mapToDouble(t -> {
+                    switch (field.toLowerCase()) {
+                        case "pm25": return Optional.ofNullable(t.getPm25()).orElse(Double.MIN_VALUE);
+                        case "pm10": return Optional.ofNullable(t.getPm10()).orElse(Double.MIN_VALUE);
+                        case "co": return Optional.ofNullable(t.getCo()).orElse(Double.MIN_VALUE);
+                        case "no2": return Optional.ofNullable(t.getNo2()).orElse(Double.MIN_VALUE);
+                        case "so2": return Optional.ofNullable(t.getSo2()).orElse(Double.MIN_VALUE);
+                        case "o3": return Optional.ofNullable(t.getO3()).orElse(Double.MIN_VALUE);
+                        case "temperature": return Optional.ofNullable(t.getTemperature()).orElse(Double.MIN_VALUE);
+                        case "humidity": return Optional.ofNullable(t.getHumidity()).orElse(Double.MIN_VALUE);
+                        case "pressure": return Optional.ofNullable(t.getPressure()).orElse(Double.MIN_VALUE);
+                        default: return Double.MIN_VALUE;
+                    }
+                })
+                .max()
+                .orElse(0.0);
+    }
 }

@@ -27,7 +27,7 @@ public class Telemetry {
     private Double longitude;
 
     private Double pm25, pm10, co, so2, no2, o3;
-
+    private Double temperature, pressure, humidity;
     private Integer aqiPm25, aqiPm10, aqiCo, aqiSo2, aqiNo2, aqiO3;
     private Integer overallAqi;
 

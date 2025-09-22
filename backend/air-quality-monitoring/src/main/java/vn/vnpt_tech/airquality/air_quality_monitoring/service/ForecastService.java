@@ -1,5 +1,8 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +27,13 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 public class ForecastService {
 
-    private static final String FLASK_API_URL = "http://localhost:5000/forecast";  // Flask API URL
+    private static final String FLASK_API_URL = "http://192.168.1.23:5000/forecast";
 
     private static final Logger logger = LoggerFactory.getLogger(ForecastService.class);
 
@@ -41,126 +46,194 @@ public class ForecastService {
     @Autowired
     private ForecastResultRepository forecastResultRepository;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+
     @Scheduled(fixedRate = 3600000)
     public void updateForecast() {
         List<Device> devices = deviceRepository.findAll();
-
         for (Device device : devices) {
             String deviceId = device.getDeviceId();
-
             String startTime = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX"));
-
             int[] horizons = {24, 72, 168};
-
             for (int horizon : horizons) {
                 ForecastRequest forecastRequest = new ForecastRequest();
                 forecastRequest.setDeviceId(deviceId);
                 forecastRequest.setStartTime(startTime);
                 forecastRequest.setHorizon(horizon);
-
-                // Get the forecast data dynamically for each device and horizon
-                List<Double> forecast = getForecast(forecastRequest);
+                getForecast(forecastRequest);
             }
         }
     }
 
-    public List<Double> getForecast(ForecastRequest forecastRequest) {
-        // Convert the startTime to ZonedDateTime (this will handle the 'Z' time zone if present)
-        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+    public Map<String, List<Double>> getForecast(ForecastRequest forecastRequest) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+        ZonedDateTime startTimeQuery = ZonedDateTime.parse(forecastRequest.getStartTime(), formatter);
 
-        ZonedDateTime startTimeQuery;
-        try {
-            startTimeQuery = ZonedDateTime.parse(forecastRequest.getStartTime(), formatterDate);
-        } catch (Exception e) {
-            logger.error("Error parsing startTime: {}", forecastRequest.getStartTime(), e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid startTime format");
-        }
-
-        // Convert ZonedDateTime to LocalDateTime (without time zone)
-        LocalDateTime localStartTime = startTimeQuery.toLocalDateTime();
-
-        // Calculate the ±1 hour tolerance range
-        LocalDateTime startTimeMinusOneHour = localStartTime.minusHours(1);
-        LocalDateTime startTimePlusOneHour = localStartTime.plusHours(1);
-
-        // Convert LocalDateTime back to ZonedDateTime to use with UTC (Z)
-        ZonedDateTime startTimeMinusOneHourUtc = startTimeMinusOneHour.atZone(ZoneId.of("UTC"));
-        ZonedDateTime startTimePlusOneHourUtc = startTimePlusOneHour.atZone(ZoneId.of("UTC"));
-
-        // Format the times in UTC with "Z" for Zulu time
-        String startTimeMinusOneHourStr = startTimeMinusOneHourUtc.format(formatterDate);
-        String startTimePlusOneHourStr = startTimePlusOneHourUtc.format(formatterDate);
-
-        // Step 1: Check if the forecast is already stored in the database with ±1 hour tolerance
-        ForecastResult existingForecast = forecastResultRepository.findByDeviceIdAndStartTimeWithTolerance(
-                forecastRequest.getDeviceId(), startTimeMinusOneHourStr, startTimePlusOneHourStr, forecastRequest.getHorizon());
-
+        // Step 1: Check if the forecast is already stored in the database
+        ForecastResult existingForecast = forecastResultRepository.findByDeviceIdAndStartTimeAndHorizon(
+                forecastRequest.getDeviceId(), startTimeQuery.format(formatter), forecastRequest.getHorizon());
 
         if (existingForecast != null) {
-            // Return the saved forecast if it exists
-            return existingForecast.getForecast();
+            logger.info("Using cached forecast for device {} and horizon {}", forecastRequest.getDeviceId(), forecastRequest.getHorizon());
+            try {
+                // Deserialize the JSON string back to a Map
+                return objectMapper.readValue(existingForecast.getForecast(), new TypeReference<Map<String, List<Double>>>() {});
+            } catch (JsonProcessingException e) {
+                logger.error("Error deserializing forecast data", e);
+                return null;
+            }
         }
+
         RestTemplate restTemplate = new RestTemplate();
-
-        // Step 1: Fetch telemetry data from the database
         String deviceId = forecastRequest.getDeviceId();
+        String selectedPollutant = forecastRequest.getSelectedPollutant();
 
-        // Specify the expected format for parsing 'startTime' with DateTimeFormatter
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+        // Step 2: Fetch recent telemetry data from the database
+        ZonedDateTime endTime = ZonedDateTime.now(ZoneId.of("UTC"));
+        ZonedDateTime startTimeForPrediction = endTime.minusHours(48); // We need 48 hours of history as input
 
-        // Parse the startTime as ZonedDateTime (this can handle the 'Z' time zone if present)
-        ZonedDateTime startTime;
-        try {
-            startTime = ZonedDateTime.parse(forecastRequest.getStartTime(), formatter);
-        } catch (Exception e) {
-            // If parsing fails, log the error and throw a BAD_REQUEST error
-            logger.error("Error parsing startTime: {}", forecastRequest.getStartTime(), e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid startTime format");
-        }
+        List<Telemetry> recentTelemetry = telemetryRepository.findByDeviceIdAndTimestampBetween(
+                deviceId, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
 
-        ZonedDateTime endTime = ZonedDateTime.now();  // End time should be now
-        ZonedDateTime startTimeForPrediction = endTime.minusHours(forecastRequest.getHorizon()); // Start time based on horizon
+        // Step 3: Apply interpolation to handle missing values
+        List<Telemetry> interpolatedData = interpolateMissingValues(recentTelemetry, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
 
-        // Step 2: Fetch recent telemetry data from the database for the last `horizon` hours
-        List<Telemetry> recentTelemetry = telemetryRepository.findByDeviceIdAndTimestampBetween(deviceId, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
+        double[][] telemetryData = convertTelemetryToArray(interpolatedData);
 
-        double[][] telemetryData = convertTelemetryToArray(recentTelemetry);
-
-        // Step 3: Prepare the request body to send to Flask API
+        // Step 4: Prepare the request body to send to Flask API
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("recent_data", telemetryData);
         requestBody.put("horizon", forecastRequest.getHorizon());
 
         ResponseEntity<Map> response = restTemplate.postForEntity(FLASK_API_URL, requestBody, Map.class);
-        // Extract the forecast data from the response
-        List<Double> forecast = (List<Double>) response.getBody().get("forecast");
+        Map<String, List<Double>> forecast = (Map<String, List<Double>>) response.getBody().get("forecast");
+
         ForecastResult newForecast = new ForecastResult();
         newForecast.setDeviceId(deviceId);
         newForecast.setStartTime(forecastRequest.getStartTime());
         newForecast.setHorizon(forecastRequest.getHorizon());
-        newForecast.setForecast(forecast);
+        try {
+            // Serialize the Map to a JSON string before saving
+            newForecast.setForecast(objectMapper.writeValueAsString(forecast));
+        } catch (JsonProcessingException e) {
+            logger.error("Error serializing forecast data", e);
+            // Handle this case appropriately, maybe by skipping the save
+        }
 
         forecastResultRepository.save(newForecast);
-
         return forecast;
     }
 
+
     /**
-     * Convert the telemetry list to the required format (e.g., a 2D array for the model)
+     * Interpolates missing values in a list of Telemetry data.
+     */
+    private List<Telemetry> interpolateMissingValues(List<Telemetry> telemetryList, LocalDateTime start, LocalDateTime end) {
+        if (telemetryList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Tạo một danh sách mới để chứa dữ liệu đã được nội suy
+        List<Telemetry> interpolatedList = new ArrayList<>(telemetryList);
+
+        // Lặp qua từng thuộc tính và áp dụng nội suy
+        interpolatedList = interpolateField(interpolatedList, "pm2.5");
+        interpolatedList = interpolateField(interpolatedList, "pm10");
+        interpolatedList = interpolateField(interpolatedList, "no2");
+        interpolatedList = interpolateField(interpolatedList, "so2");
+        interpolatedList = interpolateField(interpolatedList, "o3");
+        interpolatedList = interpolateField(interpolatedList, "co");
+        interpolatedList = interpolateField(interpolatedList, "overallAqi");
+        interpolatedList = interpolateField(interpolatedList, "temperature");
+        interpolatedList = interpolateField(interpolatedList, "humidity");
+        interpolatedList = interpolateField(interpolatedList, "pressure");
+
+        return interpolatedList;
+    }
+
+    /**
+     * A helper method to perform linear interpolation on a specific field.
+     */
+    private List<Telemetry> interpolateField(List<Telemetry> data, String field) {
+        for (int i = 0; i < data.size(); i++) {
+            if (getFieldValue(data.get(i), field) == null) {
+                int start = i - 1;
+                while (start >= 0 && getFieldValue(data.get(start), field) == null) {
+                    start--;
+                }
+
+                int end = i + 1;
+                while (end < data.size() && getFieldValue(data.get(end), field) == null) {
+                    end++;
+                }
+
+                if (start >= 0 && end < data.size()) {
+                    Double startValue = getFieldValue(data.get(start), field);
+                    Double endValue = getFieldValue(data.get(end), field);
+
+                    if (startValue != null && endValue != null) {
+                        double interpolatedValue = startValue + ((endValue - startValue) * (i - start) / (double) (end - start));
+                        setFieldValue(data.get(i), field, interpolatedValue);
+                    }
+                }
+            }
+        }
+        return data;
+    }
+
+    private Double getFieldValue(Telemetry telemetry, String field) {
+        switch (field) {
+            case "pm2.5": return telemetry.getPm25();
+            case "pm10": return telemetry.getPm10();
+            case "no2": return telemetry.getNo2();
+            case "so2": return telemetry.getSo2();
+            case "o3": return telemetry.getO3();
+            case "co": return telemetry.getCo();
+            case "overallAqi": return (double) telemetry.getOverallAqi(); // Convert int to double
+            case "temperature": return telemetry.getTemperature();
+            case "humidity": return telemetry.getHumidity();
+            case "pressure": return telemetry.getPressure();
+            default: return null;
+        }
+    }
+
+    private void setFieldValue(Telemetry telemetry, String field, Double value) {
+        if (value == null) return;
+        switch (field) {
+            case "pm2.5": telemetry.setPm25(value); break;
+            case "pm10": telemetry.setPm10(value); break;
+            case "no2": telemetry.setNo2(value); break;
+            case "so2": telemetry.setSo2(value); break;
+            case "o3": telemetry.setO3(value); break;
+            case "co": telemetry.setCo(value); break;
+            case "overallAqi": telemetry.setOverallAqi(value.intValue()); break;
+            case "temperature": telemetry.setTemperature(value); break;
+            case "humidity": telemetry.setHumidity(value); break;
+            case "pressure": telemetry.setPressure(value); break;
+        }
+    }
+
+
+    /**
+     * Convert the telemetry list to the required format
      * @param telemetryList
      * @return required Telemetry Data for forecasting
      */
     private double[][] convertTelemetryToArray(List<Telemetry> telemetryList) {
-        double[][] telemetryData = new double[telemetryList.size()][7];
+        double[][] telemetryData = new double[telemetryList.size()][10];
         for (int i = 0; i < telemetryList.size(); i++) {
             Telemetry t = telemetryList.get(i);
-            telemetryData[i][0] = t.getPm25();
-            telemetryData[i][1] = t.getPm10();
-            telemetryData[i][2] = t.getNo2();
-            telemetryData[i][3] = t.getSo2();
-            telemetryData[i][4] = t.getO3();
-            telemetryData[i][5] = t.getCo();
-            telemetryData[i][6] = t.getOverallAqi();
+            telemetryData[i][0] = t.getTemperature() != null ? t.getTemperature() : 0.0;
+            telemetryData[i][1] = t.getHumidity() != null ? t.getHumidity() : 0.0;
+            telemetryData[i][2] = t.getPressure() != null ? t.getPressure() : 0.0;
+            telemetryData[i][3] = t.getPm25() != null ? t.getPm25() : 0.0;
+            telemetryData[i][4] = t.getPm10() != null ? t.getPm10() : 0.0;
+            telemetryData[i][5] = t.getNo2() != null ? t.getNo2() : 0.0;
+            telemetryData[i][6] = t.getSo2() != null ? t.getSo2() : 0.0;
+            telemetryData[i][7] = t.getO3() != null ? t.getO3() : 0.0;
+            telemetryData[i][8] = t.getCo() != null ? t.getCo() : 0.0;
+            telemetryData[i][9] = t.getOverallAqi() != null ? (double) t.getOverallAqi() : 0.0;
         }
         return telemetryData;
     }

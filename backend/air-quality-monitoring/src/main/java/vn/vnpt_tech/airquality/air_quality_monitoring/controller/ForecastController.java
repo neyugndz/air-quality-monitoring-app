@@ -16,6 +16,7 @@ import vn.vnpt_tech.airquality.air_quality_monitoring.service.ForecastService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/forecast")
@@ -29,7 +30,7 @@ public class ForecastController {
     private TelemetryRepository telemetryRepository;
 
     @PostMapping
-    public List<Double> getForecast(@RequestBody ForecastRequest forecastRequest) {
+    public Map<String, List<Double>> getForecast(@RequestBody ForecastRequest forecastRequest) {
         return forecastService.getForecast(forecastRequest);
     }
 

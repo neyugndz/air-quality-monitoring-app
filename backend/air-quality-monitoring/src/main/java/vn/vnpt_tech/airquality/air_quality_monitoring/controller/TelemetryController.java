@@ -185,19 +185,22 @@ public class TelemetryController {
 
         // Prepare the raw data and AQI information
         Map<String, Object> rawData = new HashMap<>();
-        rawData.put("pm25", telemetry.getPm25());
-        rawData.put("pm10", telemetry.getPm10());
-        rawData.put("co", telemetry.getCo());
-        rawData.put("so2", telemetry.getSo2());
-        rawData.put("no2", telemetry.getNo2());
-        rawData.put("o3", telemetry.getO3());
-        rawData.put("aqiPm25", telemetry.getAqiPm25());
-        rawData.put("aqiPm10", telemetry.getAqiPm10());
-        rawData.put("aqiCo", telemetry.getAqiCo());
-        rawData.put("aqiSo2", telemetry.getAqiSo2());
-        rawData.put("aqiNo2", telemetry.getAqiNo2());
-        rawData.put("aqiO3", telemetry.getAqiO3());
-        rawData.put("overallAqi", telemetry.getOverallAqi());
+        rawData.put("pm25", telemetry.getPm25() != null ? telemetry.getPm25() : "N/A");
+        rawData.put("pm10", telemetry.getPm10() != null ? telemetry.getPm10() : "N/A");
+        rawData.put("co", telemetry.getCo() != null ? telemetry.getCo() : "N/A");
+        rawData.put("so2", telemetry.getSo2() != null ? telemetry.getSo2() : "N/A");
+        rawData.put("no2", telemetry.getNo2() != null ? telemetry.getNo2() : "N/A");
+        rawData.put("o3", telemetry.getO3() != null ? telemetry.getO3() : "N/A");
+        rawData.put("temperature", telemetry.getTemperature() != null ? telemetry.getTemperature() : "N/A");
+        rawData.put("pressure", telemetry.getPressure() != null ? telemetry.getPressure() : "N/A");
+        rawData.put("humidity", telemetry.getHumidity() != null ? telemetry.getHumidity() : "N/A");
+        rawData.put("aqiPm25", telemetry.getAqiPm25() != null ? telemetry.getAqiPm25() : "N/A");
+        rawData.put("aqiPm10", telemetry.getAqiPm10() != null ? telemetry.getAqiPm10() : "N/A");
+        rawData.put("aqiCo", telemetry.getAqiCo() != null ? telemetry.getAqiCo() : "N/A");
+        rawData.put("aqiSo2", telemetry.getAqiSo2() != null ? telemetry.getAqiSo2() : "N/A");
+        rawData.put("aqiNo2", telemetry.getAqiNo2() != null ? telemetry.getAqiNo2() : "N/A");
+        rawData.put("aqiO3", telemetry.getAqiO3() != null ? telemetry.getAqiO3() : "N/A");
+        rawData.put("overallAqi", telemetry.getOverallAqi() != null ? telemetry.getOverallAqi() : "N/A");
 
         return ResponseEntity.ok(rawData);
     }
@@ -233,7 +236,7 @@ public class TelemetryController {
                         // Format timestamp
                         String formattedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
                         // Return a DTO with the formatted timestamp
-                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getOverallAqi());
+                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getTemperature(), telemetry.getHumidity(), telemetry.getPressure(), telemetry.getOverallAqi());
                     })
                     .collect(Collectors.toList());
 
@@ -274,7 +277,7 @@ public class TelemetryController {
                         // Format timestamp
                         String formattedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                         // Return a DTO with the formatted timestamp and pollutant data
-                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getOverallAqi());
+                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getTemperature(), telemetry.getHumidity(), telemetry.getPressure(), telemetry.getOverallAqi());
                     })
                     .collect(Collectors.toList());
 
@@ -351,14 +354,14 @@ public class TelemetryController {
             List<TelemetryDTO> telemetryDTOs1 = data1.stream()
                     .map(telemetry -> {
                         String formattedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getOverallAqi());
+                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getTemperature(), telemetry.getHumidity(), telemetry.getPressure(), telemetry.getOverallAqi());
                     })
                     .collect(Collectors.toList());
 
             List<TelemetryDTO> telemetryDTOs2 = data2.stream()
                     .map(telemetry -> {
                         String formattedDate = telemetry.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getOverallAqi());
+                        return new TelemetryDTO(telemetry.getDeviceId(), formattedDate, telemetry.getPm25(), telemetry.getPm10(), telemetry.getCo(), telemetry.getSo2(), telemetry.getNo2(), telemetry.getO3(), telemetry.getTemperature(), telemetry.getHumidity(), telemetry.getPressure(), telemetry.getOverallAqi());
                     })
                     .collect(Collectors.toList());
 
@@ -384,5 +387,33 @@ public class TelemetryController {
     public Map<String, Double> getAverageTelemetry(@PathVariable String deviceId, @RequestParam("date") String date) {
         LocalDate localDate = LocalDate.parse(date);
         return telemetryService.calculateAverageAqiAndPollutants(deviceId, localDate);
+    }
+
+    /**
+     * API endpoint to generate custom report data.
+     *
+     * @param deviceIds Comma-separated list of device IDs.
+     * @param pollutants Comma-separated list of pollutants.
+     * @param startDate The start date.
+     * @param endDate The end date.
+     * @return A map containing chart data and statistics.
+     */
+    @GetMapping("/report")
+    public ResponseEntity<?> getReportData(
+            @RequestParam("deviceIds") List<String> deviceIds,
+            @RequestParam("pollutants") List<String> pollutants,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+
+            Map<String, Object> reportData = telemetryService.generateReportData(deviceIds, pollutants, start, end);
+
+            return ResponseEntity.ok(reportData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error generating report: " + e.getMessage());
+        }
     }
 }

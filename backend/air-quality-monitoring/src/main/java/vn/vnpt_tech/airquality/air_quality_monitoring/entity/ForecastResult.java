@@ -1,15 +1,12 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.vladmihalcea.hibernate.type.json.JsonType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
+import org.hibernate.annotations.Type;
 
 @Data
 @Builder
@@ -23,5 +20,8 @@ public class ForecastResult {
     private String deviceId;
     private String startTime;
     private int horizon;
-    private List<Double> forecast;
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "jsonb")
+    private String forecast;
 }

@@ -16,4 +16,5 @@ public class ForecastRequest {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private String startTime;
     private int horizon;
+    private String selectedPollutant;
 }
