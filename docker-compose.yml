@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  frontend:
+    build:
+      context: ./frontend/frontend
+    ports:
+      - "80:80"  # Expose React app on port 80
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend/air-quality-monitoring
+    ports:
+      - "8080:8080"  # Expose Spring Boot app on port 8080
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
