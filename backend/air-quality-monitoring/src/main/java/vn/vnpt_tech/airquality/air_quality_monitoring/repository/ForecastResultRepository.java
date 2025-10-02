@@ -9,15 +9,25 @@ import java.time.LocalDateTime;
 
 public interface ForecastResultRepository extends JpaRepository<ForecastResult, Long> {
 
-    ForecastResult findByDeviceIdAndStartTimeAndHorizon(String deviceId, String startTime, int horizon);
+//    ForecastResult findByDeviceIdAndStartTimeAndHorizon(String deviceId, String startTime, int horizon);
+
+//    @Query("SELECT f FROM ForecastResult f WHERE f.deviceId = :deviceId " +
+//            "AND f.startTime BETWEEN :startTimeMinusOneHour AND :startTimePlusOneHour " +
+//            "AND f.horizon = :horizon")
+//    ForecastResult findByDeviceIdAndStartTimeWithTolerance(
+//            @Param("deviceId") String deviceId,
+//            @Param("startTimeMinusOneHour") LocalDateTime startTimeMinusOneHour,
+//            @Param("startTimePlusOneHour") LocalDateTime startTimePlusOneHour,
+//            @Param("horizon") int horizon
+//    );
 
     @Query("SELECT f FROM ForecastResult f WHERE f.deviceId = :deviceId " +
-            "AND f.startTime BETWEEN :startTimeMinusOneHour AND :startTimePlusOneHour " +
+            "AND f.createdAt BETWEEN :startTimeMinusOneHour AND :startTimePlusOneHour " +
             "AND f.horizon = :horizon")
-    ForecastResult findByDeviceIdAndStartTimeWithTolerance(
+    ForecastResult findByDeviceIdAndCreationTimeWithTolerance(
             @Param("deviceId") String deviceId,
-            @Param("startTimeMinusOneHour") String startTimeMinusOneHour,
-            @Param("startTimePlusOneHour") String startTimePlusOneHour,
+            @Param("startTimeMinusOneHour") LocalDateTime startTimeMinusOneHour,
+            @Param("startTimePlusOneHour") LocalDateTime startTimePlusOneHour,
             @Param("horizon") int horizon
     );
 }

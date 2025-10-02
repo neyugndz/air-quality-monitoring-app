@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import vn.vnpt_tech.airquality.air_quality_monitoring.entity.Users;
 
 import java.security.Key;
 import java.util.Date;
@@ -31,8 +32,11 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
+        String role = (userDetails instanceof Users) ? ((Users) userDetails).getRole() : null;
+
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
+                .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 1 day
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)

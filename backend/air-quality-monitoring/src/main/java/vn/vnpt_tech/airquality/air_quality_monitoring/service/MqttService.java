@@ -17,7 +17,8 @@ public class MqttService implements MqttCallback {
     private static final Logger logger = LoggerFactory.getLogger(MqttService.class);
 
     private MqttClient mqttClient;
-    private final String BROKER = "tcp://192.168.1.23:1883";
+//    private final String BROKER = "tcp://192.168.1.23:1883";
+    private final String BROKER = "tcp://localhost:1883";
     private final String CLIENT_ID = MqttClient.generateClientId();
     // Thay đổi chủ đề để lắng nghe tất cả các cảm biến giả lập
     private final String TOPIC = "sensors/+/telemetry";
@@ -48,10 +49,20 @@ public class MqttService implements MqttCallback {
         logger.info("Message received from topic: {}, Payload: {}", topic, payload);
 
         try {
-            Map<String, Object> telemetryData = objectMapper.readValue(payload, Map.class);
-            String deviceId = topic.split("/")[1];
+            String[] topicParts = topic.split("/");
 
-            telemetryService.processAndSaveTelemetryFromMqtt(deviceId, telemetryData);
+            String deviceId = topicParts.length > 1 ? topicParts[1] : null;
+            Map<String, Object> telemetryData = objectMapper.readValue(payload, Map.class);
+
+            if (deviceId == null && telemetryData.containsKey("deviceId")) {
+                deviceId = (String) telemetryData.get("deviceId");
+            }
+
+            if (deviceId != null) {
+                telemetryService.processAndSaveTelemetryFromMqtt(deviceId, telemetryData);
+            } else {
+                logger.warn("Could not determine deviceId for incoming message on topic: {}", topic);
+            }
 
 
         } catch (Exception e) {

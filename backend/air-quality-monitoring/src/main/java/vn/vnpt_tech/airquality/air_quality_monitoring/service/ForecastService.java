@@ -33,7 +33,8 @@ import java.util.ArrayList;
 @Service
 public class ForecastService {
 
-    private static final String FLASK_API_URL = "http://192.168.1.23:5000/forecast";
+//    private static final String FLASK_API_URL = "http://192.168.1.23:5000/forecast";
+    private static final String FLASK_API_URL = "http://localhost:5000/forecast";
 
     private static final Logger logger = LoggerFactory.getLogger(ForecastService.class);
 
@@ -68,11 +69,17 @@ public class ForecastService {
 
     public Map<String, List<Double>> getForecast(ForecastRequest forecastRequest) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+
         ZonedDateTime startTimeQuery = ZonedDateTime.parse(forecastRequest.getStartTime(), formatter);
+        LocalDateTime startTimeLocal = startTimeQuery.toLocalDateTime();
 
         // Step 1: Check if the forecast is already stored in the database
-        ForecastResult existingForecast = forecastResultRepository.findByDeviceIdAndStartTimeAndHorizon(
-                forecastRequest.getDeviceId(), startTimeQuery.format(formatter), forecastRequest.getHorizon());
+        ForecastResult existingForecast = forecastResultRepository.findByDeviceIdAndCreationTimeWithTolerance(
+                forecastRequest.getDeviceId(),
+                startTimeLocal.minusMinutes(1), // Check 1 minute before
+                startTimeLocal.plusMinutes(1),  // Check 1 minute after
+                forecastRequest.getHorizon()
+        );
 
         if (existingForecast != null) {
             logger.info("Using cached forecast for device {} and horizon {}", forecastRequest.getDeviceId(), forecastRequest.getHorizon());
@@ -89,16 +96,14 @@ public class ForecastService {
         String deviceId = forecastRequest.getDeviceId();
         String selectedPollutant = forecastRequest.getSelectedPollutant();
 
-        // Step 2: Fetch recent telemetry data from the database
+        // Step 2 & 3: Fetch recent telemetry data and interpolate
         ZonedDateTime endTime = ZonedDateTime.now(ZoneId.of("UTC"));
-        ZonedDateTime startTimeForPrediction = endTime.minusHours(48); // We need 48 hours of history as input
+        ZonedDateTime startTimeForPrediction = endTime.minusHours(48);
 
         List<Telemetry> recentTelemetry = telemetryRepository.findByDeviceIdAndTimestampBetween(
                 deviceId, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
 
-        // Step 3: Apply interpolation to handle missing values
         List<Telemetry> interpolatedData = interpolateMissingValues(recentTelemetry, startTimeForPrediction.toLocalDateTime(), endTime.toLocalDateTime());
-
         double[][] telemetryData = convertTelemetryToArray(interpolatedData);
 
         // Step 4: Prepare the request body to send to Flask API
@@ -109,10 +114,12 @@ public class ForecastService {
         ResponseEntity<Map> response = restTemplate.postForEntity(FLASK_API_URL, requestBody, Map.class);
         Map<String, List<Double>> forecast = (Map<String, List<Double>>) response.getBody().get("forecast");
 
+        // Step 5: Save the new forecast using the new 'createdAt' column
         ForecastResult newForecast = new ForecastResult();
         newForecast.setDeviceId(deviceId);
-        newForecast.setStartTime(forecastRequest.getStartTime());
+        newForecast.setCreatedAt(LocalDateTime.now());
         newForecast.setHorizon(forecastRequest.getHorizon());
+
         try {
             // Serialize the Map to a JSON string before saving
             newForecast.setForecast(objectMapper.writeValueAsString(forecast));
@@ -121,10 +128,10 @@ public class ForecastService {
             // Handle this case appropriately, maybe by skipping the save
         }
 
+        // Save the new entity
         forecastResultRepository.save(newForecast);
         return forecast;
     }
-
 
     /**
      * Interpolates missing values in a list of Telemetry data.

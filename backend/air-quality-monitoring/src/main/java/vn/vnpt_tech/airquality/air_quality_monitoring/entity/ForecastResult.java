@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Type;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @Entity
@@ -18,7 +20,12 @@ public class ForecastResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String deviceId;
-    private String startTime;
+//    private String startTime;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+//    private LocalDateTime startTime;
     private int horizon;
 
     @Type(JsonType.class)

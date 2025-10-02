@@ -44,8 +44,9 @@ function AdminLogin() {
         const credentials = {
             email: username,
             password: password
-        }
-        try{
+        };
+
+        try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
                 method: "POST",
                 headers: {
@@ -56,28 +57,34 @@ function AdminLogin() {
             
             if (response.ok) {
                 const data = await response.json();
-                sessionStorage.setItem("jwt_token", data.token);
-                setSuccess("Login successful!");
-                setTimeout(() => navigate("/dashboard"), 2000);
+
+                // Check if role is ADMIN
+                if (data.role && data.role.toUpperCase() === "ADMIN") {
+                    localStorage.setItem("admin_jwt_token", data.token);
+
+                    setSuccess("Admin login successful!");
+                    setTimeout(() => navigate("/dashboard"), 2000);
+                } else {
+                    setError("Only administrators are allowed to log in here.");
+                }
             } else {
                 let errorData = {};
                 try {
                     errorData = await response.json();
                 } catch (err) {
-                    // If JSON parsing fails, set a default error message
                     errorData.message = "An error occurred, please try again.";
                 }
- 
+
                 setError(errorData.message);
             }
         } catch (error) {
             setError("There was an unexpected error: " + error.message);
         }
-        
     };
 
+
     return (
-        <div className='flex justify-center items-center p-8 min-h-screen bg-gray-100' style={{backgroundImage: "url('https://placehold.co/1920x1080/E5E7EB/4B5563?text=Admin+Background')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed'}}>
+        <div className='flex justify-center items-center p-8 min-h-screen bg-gray-100'>
             
             {/* Logo/Header (Top Left) */}
             <div className="absolute top-4 left-4">

@@ -1,23 +1,55 @@
-version: '3'
+version: '3.9'
 
 services:
-  frontend:
-    build:
-      context: ./frontend/frontend
-    ports:
-      - "80:80"  # Expose React app on port 80
-    networks:
-      - app-network
-
   backend:
-    build:
-      context: ./backend/air-quality-monitoring
+    build: ./backend/air-quality-monitoring
+    container_name: backend
     ports:
-      - "8080:8080"  # Expose Spring Boot app on port 8080
-    networks:
-      - app-network
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/air-quality-tsdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=Acmilan_2004
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - db
+    restart: always
 
-networks:
-  app-network:
-    driver: bridge
+  frontend_user:
+    build: ./frontend/frontend
+    container_name: frontend_user
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    restart: always
+
+  frontend_admin:
+    build: ./frontend/admin-dashboard
+    container_name: frontend_admin
+    ports:
+      - "3001:80"
+    environment:
+      - BACKEND_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    restart: always
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Acmilan_2004
+      POSTGRES_DB: air-quality-tsdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
 

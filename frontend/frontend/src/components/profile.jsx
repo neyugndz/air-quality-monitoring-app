@@ -52,6 +52,7 @@ function Profile() {
         <ul>
           <li><Link to="/home"><i className="fas fa-tachometer-alt"></i> Dashboard</Link></li>
           <li><Link to="/trend-analysis"><i className="fas fa-chart-line"></i> Trend Analysis</Link></li>
+          <li><Link to="/report"><i className="fas fa-file-export"></i> Custom Report</Link></li>
           <li><Link to="/health-recommendations"><i className="fas fa-heart"></i> Health Recommendation</Link></li>
           <li><Link to="/forecast"><i className="fas fa-cloud-sun"></i> Forecast</Link></li>
         </ul>

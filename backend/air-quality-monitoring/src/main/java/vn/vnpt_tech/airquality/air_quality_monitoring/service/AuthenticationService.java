@@ -110,9 +110,12 @@ public class AuthenticationService {
             throw new InvalidCredentialsException("Incorrect password, please try again.");
         }
 
+        LOGGER.info("Login attempt: email={}, password={}", request.getEmail(), request.getPassword());
+
         String jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .role(user.getRole())
                 .build();
     }
 

@@ -1,5 +1,7 @@
 package vn.vnpt_tech.airquality.air_quality_monitoring.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,8 @@ public class AuthenticationController {
     @Autowired
     private AuthenticationService authService;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationController.class);
+
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
             @RequestBody RegisterRequest request
@@ -29,6 +33,7 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody AuthenticationRequest request
     ) {
+        LOGGER.info("Request received: {}",request);
         return ResponseEntity.ok(authService.authenticate(request));
     }
 
